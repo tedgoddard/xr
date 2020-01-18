@@ -5,7 +5,7 @@
 import {
 	BufferGeometry,
 	Float32BufferAttribute
-} from "../js/three.min.js";
+} from "../js/three.module.js";
 
 var BoxLineGeometry = function ( width, height, depth, widthSegments, heightSegments, depthSegments ) {
 
