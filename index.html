@@ -26,7 +26,8 @@
 			var room;
 			var knife;
 
-			var controller, tempMatrix = new THREE.Matrix4();
+//			var controller, tempMatrix = new THREE.Matrix4();
+			var tempMatrix = new THREE.Matrix4();
 			var controller1, controller2;
 			var controllerGrip1, controllerGrip2;
 
@@ -117,20 +118,20 @@
 
 				}
 
-				controller = renderer.xr.getController( 0 );
-				controller.addEventListener( 'selectstart', onSelectStart );
-				controller.addEventListener( 'selectend', onSelectEnd );
-				controller.addEventListener( 'connected', function ( event ) {
-
+//				controller = renderer.xr.getController( 0 );
+//				controller.addEventListener( 'selectstart', onSelectStart );
+//				controller.addEventListener( 'selectend', onSelectEnd );
+//				controller.addEventListener( 'connected', function ( event ) {
+//
 					this.add( buildController( event.data ) );
 
-				} );
-				controller.addEventListener( 'disconnected', function () {
-
-					this.remove( this.children[ 0 ] );
-
-				} );
-				scene.add( controller );
+//				} );
+//				controller.addEventListener( 'disconnected', function () {
+//
+//					this.remove( this.children[ 0 ] );
+//
+//				} );
+//				scene.add( controller );
 
 				
 				
@@ -254,48 +255,48 @@
 
 				var delta = clock.getDelta() * 60;
 
-				if ( controller.userData.isSelecting === true ) {
+//				if ( controller.userData.isSelecting === true ) {
+//
+//					var cube = room.children[ 0 ];
+//					room.remove( cube );
 
-					var cube = room.children[ 0 ];
-					room.remove( cube );
-
-					cube.position.copy( controller.position );
-					cube.userData.velocity.x = ( Math.random() - 0.5 ) * 0.02 * delta;
-					cube.userData.velocity.y = ( Math.random() - 0.5 ) * 0.02 * delta;
-					cube.userData.velocity.z = ( Math.random() * 0.01 - 0.05 ) * delta;
-					cube.userData.velocity.applyQuaternion( controller.quaternion );
-					room.add( cube );
-
-				}
+//					cube.position.copy( controller.position );
+//					cube.userData.velocity.x = ( Math.random() - 0.5 ) * 0.02 * delta;
+//					cube.userData.velocity.y = ( Math.random() - 0.5 ) * 0.02 * delta;
+//					cube.userData.velocity.z = ( Math.random() * 0.01 - 0.05 ) * delta;
+//					cube.userData.velocity.applyQuaternion( controller.quaternion );
+//					room.add( cube );
+//
+//				}
 
 				// find intersections
 
-				tempMatrix.identity().extractRotation( controller.matrixWorld );
+//				tempMatrix.identity().extractRotation( controller.matrixWorld );
 
-				raycaster.ray.origin.setFromMatrixPosition( controller.matrixWorld );
-				raycaster.ray.direction.set( 0, 0, - 1 ).applyMatrix4( tempMatrix );
+//				raycaster.ray.origin.setFromMatrixPosition( controller.matrixWorld );
+//				raycaster.ray.direction.set( 0, 0, - 1 ).applyMatrix4( tempMatrix );
 
-				var intersects = raycaster.intersectObjects( room.children );
-
-				if ( intersects.length > 0 ) {
-
-					if ( INTERSECTED != intersects[ 0 ].object ) {
-
-						if ( INTERSECTED ) INTERSECTED.material.emissive.setHex( INTERSECTED.currentHex );
-
-						INTERSECTED = intersects[ 0 ].object;
-						INTERSECTED.currentHex = INTERSECTED.material.emissive.getHex();
-						INTERSECTED.material.emissive.setHex( 0xff0000 );
-
-					}
-
-				} else {
-
-					if ( INTERSECTED ) INTERSECTED.material.emissive.setHex( INTERSECTED.currentHex );
-
-					INTERSECTED = undefined;
-
-				}
+//				var intersects = raycaster.intersectObjects( room.children );
+//
+//				if ( intersects.length > 0 ) {
+//
+//					if ( INTERSECTED != intersects[ 0 ].object ) {
+//
+//						if ( INTERSECTED ) INTERSECTED.material.emissive.setHex( INTERSECTED.currentHex );
+//
+//						INTERSECTED = intersects[ 0 ].object;
+//						INTERSECTED.currentHex = INTERSECTED.material.emissive.getHex();
+//						INTERSECTED.material.emissive.setHex( 0xff0000 );
+//
+//					}
+//
+//				} else {
+//
+//					if ( INTERSECTED ) INTERSECTED.material.emissive.setHex( INTERSECTED.currentHex );
+//
+//					INTERSECTED = undefined;
+//
+//				}
 
 				// Keep cubes inside room
 /*
