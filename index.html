@@ -16,6 +16,7 @@
 			import * as THREE from './js/three.module.js';
 			import { BoxLineGeometry } from './jsm/BoxLineGeometry.js';
 			import { VRButton } from './jsm/VRButton.js';
+			import { XRControllerModelFactory } from './jsm/webxr/XRControllerModelFactory.js';
 
 			var clock = new THREE.Clock();
 
@@ -25,6 +26,9 @@
 			var room;
 
 			var controller, tempMatrix = new THREE.Matrix4();
+			var controller1, controller2;
+			var controllerGrip1, controllerGrip2;
+
 			var INTERSECTED;
 
 			init();
@@ -118,6 +122,58 @@
 				} );
 				scene.add( controller );
 
+				
+				
+				//controller models
+				controller1 = renderer.xr.getController( 0 );
+				controller1.addEventListener( 'selectstart', onSelectStart );
+				controller1.addEventListener( 'selectend', onSelectEnd );
+				controller1.addEventListener( 'connected', function ( event ) {
+
+					this.add( buildController( event.data ) );
+
+				} );
+				controller1.addEventListener( 'disconnected', function () {
+
+					this.remove( this.children[ 0 ] );
+
+				} );
+				scene.add( controller1 );
+
+				controller2 = renderer.xr.getController( 1 );
+				controller2.addEventListener( 'selectstart', onSelectStart );
+				controller2.addEventListener( 'selectend', onSelectEnd );
+				controller2.addEventListener( 'connected', function ( event ) {
+
+					this.add( buildController( event.data ) );
+
+				} );
+				controller2.addEventListener( 'disconnected', function () {
+
+					this.remove( this.children[ 0 ] );
+
+				} );
+				scene.add( controller2 );
+
+				// The XRControllerModelFactory will automatically fetch controller models
+				// that match what the user is holding as closely as possible. The models
+				// should be attached to the object returned from getControllerGrip in
+				// order to match the orientation of the held device.
+
+				var controllerModelFactory = new XRControllerModelFactory();
+
+				controllerGrip1 = renderer.xr.getControllerGrip( 0 );
+				controllerGrip1.add( controllerModelFactory.createControllerModel( controllerGrip1 ) );
+				scene.add( controllerGrip1 );
+
+				controllerGrip2 = renderer.xr.getControllerGrip( 1 );
+				controllerGrip2.add( controllerModelFactory.createControllerModel( controllerGrip2 ) );
+				scene.add( controllerGrip2 );
+
+				//end controller models
+				
+				
+				
 				window.addEventListener( 'resize', onWindowResize, false );
 
 				//
@@ -159,8 +215,26 @@
 
 			}
 
-			//
 
+			function handleController( controller ) {
+
+				if ( controller.userData.isSelecting ) {
+
+					var object = room.children[ count ++ ];
+
+					object.position.copy( controller.position );
+					object.userData.velocity.x = ( Math.random() - 0.5 ) * 3;
+					object.userData.velocity.y = ( Math.random() - 0.5 ) * 3;
+					object.userData.velocity.z = ( Math.random() - 9 );
+					object.userData.velocity.applyQuaternion( controller.quaternion );
+
+					if ( count === room.children.length ) count = 0;
+
+				}
+
+			}
+
+			
 			function animate() {
 
 				renderer.setAnimationLoop( render );
@@ -168,6 +242,9 @@
 			}
 
 			function render() {
+
+				handleController( controller1 );
+				handleController( controller2 );
 
 				var delta = clock.getDelta() * 60;
 
