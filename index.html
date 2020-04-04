@@ -230,12 +230,17 @@
 			function handleController( controller ) {
 
 				if ( controller.userData.isSelecting ) {
-
+/*
+knife.material.color.setHex( 0x102030 );
 					knife.position.copy( controller.position );
 					knife.userData.velocity.x = ( Math.random() - 0.5 ) * 3;
 					knife.userData.velocity.y = ( Math.random() - 0.5 ) * 3;
 					knife.userData.velocity.z = ( Math.random() - 9 );
 					knife.userData.velocity.applyQuaternion( controller.quaternion );
+*/
+				} else {
+					
+knife.material.color.setHex( 0x302010 );
 
 				}
 
