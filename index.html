@@ -24,6 +24,7 @@
 			var camera, scene, raycaster, renderer;
 
 			var room;
+			var knife;
 
 			var controller, tempMatrix = new THREE.Matrix4();
 			var controller1, controller2;
@@ -84,7 +85,14 @@
 					room.add( object );
 
 				}
+				const knifeGeometry = new THREE.BoxBufferGeometry( 0.15, 0.15, 0.8 );
+				knife = new THREE.Mesh( knifeGeometry, new THREE.MeshLambertMaterial( { color: 0x808080 } ) );
+				knife.position.x = 1;
+				knife.position.y = 1;
+				knife.position.z = 1;
+				room.add( knife );
 
+				
 				raycaster = new THREE.Raycaster();
 
 				renderer = new THREE.WebGLRenderer( { antialias: true } );
