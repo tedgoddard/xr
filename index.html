@@ -61,6 +61,7 @@
 
 				var geometry = new THREE.BoxBufferGeometry( 0.15, 0.15, 0.15 );
 
+				/*
 				for ( var i = 0; i < 200; i ++ ) {
 
 					var object = new THREE.Mesh( geometry, new THREE.MeshLambertMaterial( { color: Math.random() * 0xffffff } ) );
@@ -85,6 +86,7 @@
 					room.add( object );
 
 				}
+	*/
 				const knifeGeometry = new THREE.BoxBufferGeometry( 0.15, 0.15, 0.8 );
 				knife = new THREE.Mesh( knifeGeometry, new THREE.MeshLambertMaterial( { color: 0x808080 } ) );
 				knife.position.x = 1;
@@ -300,7 +302,7 @@
 				}
 
 				// Keep cubes inside room
-
+/*
 				for ( var i = 0; i < room.children.length; i ++ ) {
 
 					var cube = room.children[ i ];
@@ -335,7 +337,7 @@
 					cube.rotation.z += cube.userData.velocity.z * 2 * delta;
 
 				}
-
+*/
 				renderer.render( scene, camera );
 
 			}
