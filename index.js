@@ -133,15 +133,15 @@ function init() {
   controller2.addEventListener( 'selectstart', onSelectStart );
   controller2.addEventListener( 'selectend', onSelectEnd );
   controller2.addEventListener( 'connected', function ( event ) {
-
     this.add( buildController( event.data ) );
-
   } );
   controller2.addEventListener( 'disconnected', function () {
-
     this.remove( this.children[ 0 ] );
-
   } );
+  controller2.addEventListener( 'squeeze', function ( event ) {
+    this.userData.squeezeEvent = event
+  } );
+
   scene.add( controller2 );
 
   // The XRControllerModelFactory will automatically fetch controller models
@@ -208,6 +208,7 @@ function onWindowResize() {
 function handleController( controller ) {
   if ( controller.userData.squeezeEvent ) {
       knife.material.color.setHex( 0x000000 );
+     knife.position.copy( controller.position );
     controller.userData.squeezeEvent = null
   }
   if ( controller.userData.isSelecting ) {
