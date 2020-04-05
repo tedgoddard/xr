@@ -68,7 +68,7 @@ function init() {
 */
   const knifeGeometry = new THREE.BoxBufferGeometry( 0.15, 0.15, 0.8 );
   knife = new THREE.Mesh( knifeGeometry, new THREE.MeshLambertMaterial( { color: 0x808080 } ) );
-  knife.position.x = 1;
+  knife.position.x = 0;
   knife.position.y = 1;
   knife.position.z = 1;
   room.add( knife );
@@ -125,7 +125,7 @@ function init() {
   } );
   scene.add( controller1 );
   controller1.addEventListener( 'squeeze', function ( event ) {
-    knife.material.color.setHex( 0x000000 );
+    this.userData.squeezeEvent = event
   } );
 
   
@@ -206,10 +206,14 @@ function onWindowResize() {
 
 
 function handleController( controller ) {
-
+  if ( controller.userData.squeezeEvent ) {
+      knife.material.color.setHex( 0x000000 );
+    controller.userData.squeezeEvent = null
+  }
   if ( controller.userData.isSelecting ) {
+    knife.material.color.setHex( 0x102030 );
+
 /*
-knife.material.color.setHex( 0x102030 );
     knife.position.copy( controller.position );
     knife.userData.velocity.x = ( Math.random() - 0.5 ) * 3;
     knife.userData.velocity.y = ( Math.random() - 0.5 ) * 3;
