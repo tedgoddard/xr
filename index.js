@@ -67,7 +67,7 @@ function init() {
   }
 */
   const knifeGeometry = new THREE.BoxBufferGeometry( 0.15, 0.15, 0.8 );
-  knife = new THREE.Mesh( knifeGeometry, new THREE.MeshLambertMaterial( { color: 0x908080 } ) );
+  knife = new THREE.Mesh( knifeGeometry, new THREE.MeshLambertMaterial( { color: 0x101010 } ) );
   knife.position.x = 0;
   knife.position.y = 1;
   knife.position.z = 1;
@@ -211,7 +211,7 @@ function handleController( controller ) {
     controller.userData.squeezeEvent = null
   }
   if ( controller.userData.isSelecting ) {
-    knife.material.color.setHex( 0x102030 );
+    knife.material.color.setHex( 0x550055 );
 
 /*
     knife.position.copy( controller.position );
