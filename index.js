@@ -67,7 +67,7 @@ function init() {
   }
 */
   const knifeGeometry = new THREE.BoxBufferGeometry( 0.15, 0.15, 0.8 );
-  knife = new THREE.Mesh( knifeGeometry, new THREE.MeshLambertMaterial( { color: 0x808080 } ) );
+  knife = new THREE.Mesh( knifeGeometry, new THREE.MeshLambertMaterial( { color: 0x908080 } ) );
   knife.position.x = 0;
   knife.position.y = 1;
   knife.position.z = 1;
