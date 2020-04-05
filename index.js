@@ -212,7 +212,8 @@ function handleController( controller ) {
     controller.userData.squeezeEvent = null
   }
   if ( controller.userData.isSelecting ) {
-    knife.material.color.setHex( 0x550055 );
+    knife.material.color.setHex( 0x550000 );
+     knife.position.copy( controller.position );
 
 /*
     knife.position.copy( controller.position );
