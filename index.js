@@ -15,7 +15,7 @@ const knifeColor = 0x307010
 var tempMatrix = new THREE.Matrix4();
 var controller1, controller2;
 var controllerGrip1, controllerGrip2;
-
+let log = ""
 var INTERSECTED;
 
 init();
@@ -126,6 +126,8 @@ function init() {
   scene.add( controller1 );
   controller1.addEventListener( 'squeeze', function ( event ) {
     this.userData.squeezeEvent = event
+    log = (new Date()).toLocaleTimeString() + "<br>"
+    log += JSON.stringify(event)
   } );
 
   
@@ -236,7 +238,7 @@ function animate() {
 }
 
 function render() {
-
+  document.getElementById("log").innerHTML = log
   handleController( controller1 );
   handleController( controller2 );
 
