@@ -10,7 +10,7 @@ var camera, scene, raycaster, renderer;
 
 var room;
 var knife;
-
+const knifeColor = 0x307010
 //			var controller, tempMatrix = new THREE.Matrix4();
 var tempMatrix = new THREE.Matrix4();
 var controller1, controller2;
@@ -67,7 +67,7 @@ function init() {
   }
 */
   const knifeGeometry = new THREE.BoxBufferGeometry( 0.15, 0.05, 0.8 );
-  knife = new THREE.Mesh( knifeGeometry, new THREE.MeshLambertMaterial( { color: 0x101040 } ) );
+  knife = new THREE.Mesh( knifeGeometry, new THREE.MeshLambertMaterial( { color: knifeColor } ) );
   knife.position.x = 0;
   knife.position.y = 1;
   knife.position.z = 1;
@@ -223,9 +223,7 @@ function handleController( controller ) {
     knife.userData.velocity.applyQuaternion( controller.quaternion );
 */
   } else {
-    
-knife.material.color.setHex( 0x302010 );
-
+    knife.material.color.setHex(knifeColor);
   }
 
 }
