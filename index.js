@@ -126,9 +126,7 @@ function init() {
   scene.add( controller1 );
   controller1.addEventListener( 'squeeze', function ( event ) {
     this.userData.squeezeEvent = event
-    log = (new Date()).toLocaleTimeString() + "<br>"
-    log += JSON.stringify(event)
-    logFlash((new Date()).toLocaleTimeString())
+    logFlash(JSON.stringify(event, null, 2))
   } );
 
   
@@ -163,9 +161,8 @@ function init() {
   scene.add( controllerGrip2 );
 
   //end controller models
-  const labelPosition = { x: 0, y: 1.2, z: 1 }
-  const logLabel = makeLabel(20, labelPosition, "The Logs")
-  scene.add(logLabel)
+
+  logFlash("The Time\n" + (new Date()).toLocaleTimeString())
 
   window.addEventListener( 'resize', onWindowResize, false );
 
@@ -317,14 +314,18 @@ function render() {
 }
 
 function makeLabelCanvas(size, text) {
+  const lines = text.split("\n")
   const borderSize = 2;
   const ctx = document.createElement('canvas').getContext('2d');
   const font =  `${size}px bold sans-serif`;
   ctx.font = font;
-  // measure how long the name will be
   const doubleBorderSize = borderSize * 2;
-  const width = ctx.measureText(text).width + doubleBorderSize;
-  const height = size + doubleBorderSize;
+  let width = 0
+  for (const line of lines) {
+    const lineWidth = ctx.measureText(text).width + doubleBorderSize
+    width = Math.max(width, lineWidth)
+  }
+  const height = (size + doubleBorderSize) * lines.length
   ctx.canvas.width = width;
   ctx.canvas.height = height;
 
@@ -332,10 +333,14 @@ function makeLabelCanvas(size, text) {
   ctx.font = font;
   ctx.textBaseline = 'top';
 
-  ctx.fillStyle = 'blue';
+  ctx.fillStyle = 'rosybrown';
   ctx.fillRect(0, 0, width, height);
   ctx.fillStyle = 'white';
-  ctx.fillText(text, borderSize, borderSize);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    const y = i * (size + borderSize)
+    ctx.fillText(line, borderSize, borderSize + y);
+  }
 
   return ctx.canvas;
 }
@@ -360,8 +365,6 @@ function makeLabel(size, position, text) {
   label.position.y = position.y;
   label.position.z = position.z;
 
-  // if units are meters then 0.01 here makes size
-  // of the label into centimeters.
   const labelBaseScale = 0.001;
   label.scale.x = canvas.width  * labelBaseScale;
   label.scale.y = canvas.height * labelBaseScale;
@@ -369,10 +372,10 @@ function makeLabel(size, position, text) {
 }
 
 function logFlash(text) {
-  const labelName = "log_flash"
-  const labelPosition = { x: 0, y: 1.5, z: 1 }
+  const cameraDirection = camera.getWorldDirection()
+  const cameraPosition = camera.position.clone()
+  const labelPosition = cameraPosition.add(cameraDirection)
   const logLabel = makeLabel(20, labelPosition, text)
-  logLabel.name = labelName
   scene.add(logLabel)
-  setTimeout(() => { scene.removeObjectByName(labelName)}, 2000)
+  setTimeout(() => { scene.remove(logLabel) }, 2000)
 }
