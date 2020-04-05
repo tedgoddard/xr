@@ -128,6 +128,7 @@ function init() {
     this.userData.squeezeEvent = event
     log = (new Date()).toLocaleTimeString() + "<br>"
     log += JSON.stringify(event)
+    logFlash((new Date()).toLocaleTimeString())
   } );
 
   
@@ -162,9 +163,10 @@ function init() {
   scene.add( controllerGrip2 );
 
   //end controller models
-  
-  
-  
+  const labelPosition = { x: 0, y: 1.2, z: 1 }
+  const logLabel = makeLabel(20, labelPosition, "The Logs")
+  scene.add(logLabel)
+
   window.addEventListener( 'resize', onWindowResize, false );
 
   //
@@ -312,4 +314,65 @@ function render() {
 */
   renderer.render( scene, camera );
 
+}
+
+function makeLabelCanvas(size, text) {
+  const borderSize = 2;
+  const ctx = document.createElement('canvas').getContext('2d');
+  const font =  `${size}px bold sans-serif`;
+  ctx.font = font;
+  // measure how long the name will be
+  const doubleBorderSize = borderSize * 2;
+  const width = ctx.measureText(text).width + doubleBorderSize;
+  const height = size + doubleBorderSize;
+  ctx.canvas.width = width;
+  ctx.canvas.height = height;
+
+  // need to set font again after resizing canvas
+  ctx.font = font;
+  ctx.textBaseline = 'top';
+
+  ctx.fillStyle = 'blue';
+  ctx.fillRect(0, 0, width, height);
+  ctx.fillStyle = 'white';
+  ctx.fillText(text, borderSize, borderSize);
+
+  return ctx.canvas;
+}
+
+function makeLabel(size, position, text) {
+  const canvas = makeLabelCanvas(size, text);
+  const texture = new THREE.CanvasTexture(canvas);
+  // because our canvas is likely not a power of 2
+  // in both dimensions set the filtering appropriately.
+  texture.minFilter = THREE.LinearFilter;
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+
+  const labelMaterial = new THREE.MeshBasicMaterial({
+    map: texture,
+    side: THREE.DoubleSide,
+    transparent: true,
+  });
+  const labelGeometry = new THREE.PlaneBufferGeometry(1, 1);
+  const label = new THREE.Mesh(labelGeometry, labelMaterial);
+  label.position.x = position.x;
+  label.position.y = position.y;
+  label.position.z = position.z;
+
+  // if units are meters then 0.01 here makes size
+  // of the label into centimeters.
+  const labelBaseScale = 0.001;
+  label.scale.x = canvas.width  * labelBaseScale;
+  label.scale.y = canvas.height * labelBaseScale;
+  return label
+}
+
+function logFlash(text) {
+  const labelName = "log_flash"
+  const labelPosition = { x: 0, y: 1.5, z: 1 }
+  const logLabel = makeLabel(20, labelPosition, text)
+  logLabel.name = labelName
+  scene.add(logLabel)
+  setTimeout(() => { scene.removeObjectByName(labelName)}, 2000)
 }
