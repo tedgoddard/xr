@@ -118,17 +118,17 @@ function init() {
   controller1.addEventListener( 'selectstart', onSelectStart );
   controller1.addEventListener( 'selectend', onSelectEnd );
   controller1.addEventListener( 'connected', function ( event ) {
-
     this.add( buildController( event.data ) );
-
   } );
   controller1.addEventListener( 'disconnected', function () {
-
     this.remove( this.children[ 0 ] );
-
   } );
   scene.add( controller1 );
+  controller1.addEventListener( 'squeeze', function ( event ) {
+    knife.material.color.setHex( 0x000000 );
+  } );
 
+  
   controller2 = renderer.xr.getController( 1 );
   controller2.addEventListener( 'selectstart', onSelectStart );
   controller2.addEventListener( 'selectend', onSelectEnd );
