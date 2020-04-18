@@ -31,7 +31,6 @@ const knifeHandleColor = 0xFF0000
 var tempMatrix = new THREE.Matrix4();
 var controller1, controller2;
 var controllerGrip1, controllerGrip2;
-let log = ""
 var INTERSECTED;
 // let lastRender = "_"
 const gravity = new THREE.Vector3(0, -0.00009, 0)
@@ -113,7 +112,7 @@ function init() {
     const knifeScene = gltf.scene
     knifeScene.scale.set(0.01, 0.01, 0.01)
     knifeScene.position.x = -0.1;
-    knifeScene.position.y = 1;
+    // knifeScene.position.y = 1;
     knifeScene.position.z = 0;
     knifeScene.rotation.y = -1.7
     knifeScene.children[2].material = new THREE.MeshStandardMaterial( { color: knifeColor, metalness: 0.8, roughness: 0.7 } )
@@ -165,9 +164,10 @@ function init() {
   })
 
   gripBox = new THREE.Object3D()
-  const markerGeometry = new THREE.BoxGeometry( 0.01, 0.01, 0.1 )
-  var markerMaterial = new THREE.MeshBasicMaterial( {color: 0x00ff00, emissive: 1.0 } )
-  gripMarker = new THREE.Mesh( markerGeometry, markerMaterial )
+  // const markerGeometry = new THREE.BoxGeometry( 0.01, 0.01, 0.1 )
+  // var markerMaterial = new THREE.MeshBasicMaterial( {color: 0x00ff00, emissive: 1.0 } )
+  // gripMarker = new THREE.Mesh( markerGeometry, markerMaterial )
+  gripMarker = new THREE.Object3D()
   gripMarker.position.z = -0.5
   gripBox.add(gripMarker)
   scene.add(gripBox)
@@ -309,7 +309,6 @@ function animate() {
 }
 
 function render(time, frame) {
-  document.getElementById("log").innerHTML = log
   handleController(time, controller1)
   handleController(time, controller2)
 
