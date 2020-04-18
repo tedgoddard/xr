@@ -80,6 +80,10 @@ var VRButton = {
 
 				}
 
+				if ( options.onclick ) {
+					options.onclick()
+				}
+
 			};
 
 		}
