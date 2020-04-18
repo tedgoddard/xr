@@ -159,7 +159,7 @@ function init() {
     })
     const targetGeometry = new THREE.PlaneGeometry(2, 2)
     const targetMesh = new THREE.Mesh(targetGeometry, targetMaterial);
-    targetMesh.position.set(0, 2.5, -10)
+    targetMesh.position.set(0, 2.5, -9)
     room.add(targetMesh)
   })
 
@@ -334,7 +334,7 @@ function render(time, frame) {
         scuff.play()
       }
     }
-    if (knife.position.z < -9.9) {
+    if (knife.position.z < -8.8) {
       knife.userData.velocity = null
       knife.userData.eulerVelocity = null
       if (thump.context.state == "running") {
