@@ -22,6 +22,7 @@ var knife;
 let bulbLight
 let gripBox = null
 let gripMarker = null
+let player = null
 
 // const knifeColor = 0x303030
 const knifeColor = 0x303030
@@ -74,10 +75,14 @@ function init() {
   scene = new THREE.Scene();
   scene.background = new THREE.Color( 0x505050 );
 
+  player = new THREE.Object3D()
+  scene.add(player)
+
   camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 25 );
   camera.position.set( 0, 1.6, 3 );
   camera.add(audioListener)
-  scene.add( camera );
+  // scene.add( camera );
+  player.add(camera)
 
   audioLoader.load( 'sounds/thump.ogg', buffer => {
     thump.setBuffer(buffer)
@@ -134,20 +139,30 @@ function init() {
   container.appendChild( renderer.domElement );
   
   //controller models
-  controller1 = renderer.xr.getController( 0 );
+  controller1 = renderer.xr.getController(0)
+  controller2 = renderer.xr.getController(1)
+
+  controller1.userData.name = "controller1"
+  controller2.userData.name = "controller2"
+
   addController(scene, controller1)
-  controller2 = renderer.xr.getController( 1 );
   addController(scene, controller2)
 
-  var controllerModelFactory = new XRControllerModelFactory();
+  const controllerModelFactory = new XRControllerModelFactory()
 
-  controllerGrip1 = renderer.xr.getControllerGrip( 0 );
-  controllerGrip1.add( controllerModelFactory.createControllerModel( controllerGrip1 ) );
-  scene.add( controllerGrip1 );
+  controllerGrip1 = renderer.xr.getControllerGrip(0)
+  controllerGrip2 = renderer.xr.getControllerGrip(1)
 
-  controllerGrip2 = renderer.xr.getControllerGrip( 1 );
-  controllerGrip2.add( controllerModelFactory.createControllerModel( controllerGrip2 ) );
-  scene.add( controllerGrip2 );
+  const controllerModel1 = controllerModelFactory.createControllerModel(controllerGrip1)
+  const controllerModel2 = controllerModelFactory.createControllerModel(controllerGrip2)
+  controller1.userData.controllerModel = controllerModel1
+  controller2.userData.controllerModel = controllerModel2
+
+  controllerGrip1.add(controllerModel1)
+  controllerGrip2.add(controllerModel2)
+
+  scene.add(controllerGrip1)
+  scene.add(controllerGrip2)
 
   //end controller models
 
@@ -235,6 +250,18 @@ function calculateVelocity(positions) {
 }
 
 function handleController(time, controller) {
+  const motionController = controller.userData.controllerModel.motionController
+  if (motionController) {
+    const hand = motionController.xrInputSource.handedness
+    const thumbStick = motionController.components["xr-standard-thumbstick"]
+    const values = thumbStick.values
+    if (hand == "left") {
+      player.position.z += values.yAxis / 10
+      player.position.x += values.xAxis / 10
+    } else if (hand == "right") {
+      player.rotation.y += - values.xAxis / 10
+    }
+  }
   // const { x, y, z } = controller.position
   // const position = new THREE.Vector3(x, y, z)
   // const position = controller.position.clone()
@@ -309,6 +336,7 @@ function animate() {
 }
 
 function render(time, frame) {
+
   handleController(time, controller1)
   handleController(time, controller2)
 
