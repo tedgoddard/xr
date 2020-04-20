@@ -256,8 +256,11 @@ function handleController(time, controller) {
     const thumbStick = motionController.components["xr-standard-thumbstick"]
     const values = thumbStick.values
     if (hand == "left") {
-      player.position.z += values.yAxis / 10
-      player.position.x += values.xAxis / 10
+      const xrCamera = renderer.xr.getCamera(camera)
+      const cameraDirection = xrCamera.getWorldDirection()
+      const strafeDirection = new THREE.Vector3(-cameraDirection.z, 0, cameraDirection.x)
+      player.position.add(cameraDirection.multiplyScalar(-values.yAxis / 10))
+      player.position.add(strafeDirection.multiplyScalar(values.xAxis / 10))
     } else if (hand == "right") {
       player.rotation.y += - values.xAxis / 10
     }
