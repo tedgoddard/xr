@@ -123,7 +123,7 @@ function init() {
     knifeScene.children[2].material = new THREE.MeshStandardMaterial( { color: knifeColor, metalness: 0.8, roughness: 0.7 } )
     knifeScene.children[3].material = new THREE.MeshStandardMaterial( { color: knifeColor, metalness: 1.0, roughness: 0.2 } )
     knife.add(knifeScene)
-    room.add(knife)
+    player.add(knife)
     knife.add(thump)
     knife.add(scuff)
     knife.userData.velocity = new THREE.Vector3(0, .0003, -0.0003)
@@ -157,12 +157,13 @@ function init() {
   const controllerModel2 = controllerModelFactory.createControllerModel(controllerGrip2)
   controller1.userData.controllerModel = controllerModel1
   controller2.userData.controllerModel = controllerModel2
+console.log(controllerModel1)
 
   controllerGrip1.add(controllerModel1)
   controllerGrip2.add(controllerModel2)
 
-  scene.add(controllerGrip1)
-  scene.add(controllerGrip2)
+  player.add(controllerGrip1)
+  player.add(controllerGrip2)
 
   //end controller models
 
@@ -259,6 +260,7 @@ function handleController(time, controller) {
       const xrCamera = renderer.xr.getCamera(camera)
       const cameraDirection = xrCamera.getWorldDirection()
       const strafeDirection = new THREE.Vector3(-cameraDirection.z, 0, cameraDirection.x)
+      cameraDirection.y = 0
       player.position.add(cameraDirection.multiplyScalar(-values.yAxis / 10))
       player.position.add(strafeDirection.multiplyScalar(values.xAxis / 10))
     } else if (hand == "right") {
@@ -359,13 +361,15 @@ function render(time, frame) {
     knifeVelocity = knifeVelocity.clone()
     knifeVelocity.multiplyScalar(delta * 4)
     knife.position.add(knifeVelocity)
-    if (knife.position.y < -0.5) {
+    const knifeWorld = knife.localToWorld(new THREE.Vector3())
+
+    if (knifeWorld.y < -0.5) {
       knife.userData.velocity = null
       if (scuff.context.state == "running") {
         scuff.play()
       }
     }
-    if (knife.position.z < -8.8) {
+    if (knifeWorld.z < -8.8) {
       knife.userData.velocity = null
       knife.userData.eulerVelocity = null
       if (thump.context.state == "running") {
