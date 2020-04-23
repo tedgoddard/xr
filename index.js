@@ -157,7 +157,6 @@ function init() {
   const controllerModel2 = controllerModelFactory.createControllerModel(controllerGrip2)
   controller1.userData.controllerModel = controllerModel1
   controller2.userData.controllerModel = controllerModel2
-console.log(controllerModel1)
 
   controllerGrip1.add(controllerModel1)
   controllerGrip2.add(controllerModel2)
@@ -251,7 +250,11 @@ function calculateVelocity(positions) {
 }
 
 function handleController(time, controller) {
-  const motionController = controller.userData.controllerModel.motionController
+  const controllerModel = controller.userData.controllerModel
+  if (controller.children.length > 0) {
+    controller.children[0].visible = false
+  }
+  const motionController = controllerModel.motionController
   if (motionController) {
     const hand = motionController.xrInputSource.handedness
     const thumbStick = motionController.components["xr-standard-thumbstick"]
