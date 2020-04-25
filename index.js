@@ -139,6 +139,7 @@ function init() {
 //     hall.position.z = 0;
 //     hall.rotation.y = -1.7
     scene.add(hall)
+    console.log("The Hall", hall)
   })
 
   raycaster = new THREE.Raycaster();
