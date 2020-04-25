@@ -137,7 +137,7 @@ function init() {
 //     hall.position.x = -0.1;
     // knifeScene.position.y = 1;
 //     hall.position.z = 0;
-//     hall.rotation.y = -1.7
+    hall.rotation.y = -1.7
     scene.add(hall)
     console.log("The Hall", hall)
   })
