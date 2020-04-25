@@ -131,11 +131,11 @@ function init() {
     knife.userData.eulerVelocity = new THREE.Vector3(0, .0003, -0.0003)
   })
 
-//   loader.load("hall.glb", (gltf) => {
-//     const hall = gltf.scene
+  loader.load("wall.glb", (gltf) => {
+    const hall = gltf.scene
 //     hall.rotation.y = -1.7
-//     scene.add(hall)
-//   })
+    scene.add(hall)
+  })
 
   raycaster = new THREE.Raycaster();
 
