@@ -3,6 +3,8 @@ import { BoxLineGeometry } from './jsm/BoxLineGeometry.js';
 import { VRButton } from './jsm/VRButton.js';
 import { XRControllerModelFactory } from './jsm/webxr/XRControllerModelFactory.js';
 import { GLTFLoader } from './jsm/loaders/GLTFLoader.js'
+import { OBJLoader } from './jsm/loaders/OBJLoader.js'
+import { MTLLoader } from './jsm/loaders/MTLLoader.js'
 
 var clock = new THREE.Clock();
 const loader = new GLTFLoader()
@@ -131,10 +133,21 @@ function init() {
     knife.userData.eulerVelocity = new THREE.Vector3(0, .0003, -0.0003)
   })
 
-  loader.load("room.glb", (gltf) => {
-    const room = gltf.scene
-    room.position.z = -8
-    scene.add(room)
+  // loader.load("room.glb", (gltf) => {
+  //   const room = gltf.scene
+  //   room.position.z = -8
+  //   scene.add(room)
+  // })
+
+  const path = "walls/"
+  new MTLLoader().setPath(path).load("stack.mtl", materials => {
+    materials.preload()
+    const objLoader = new OBJLoader().setMaterials(materials).setPath(path)
+    objLoader.load("stack.obj", object => {
+        const room = object
+        room.position.z = -8
+        scene.add(room)
+    })
   })
 
   raycaster = new THREE.Raycaster();
