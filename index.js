@@ -133,11 +133,11 @@ function init() {
 
   loader.load("hall.glb", (gltf) => {
     const hall = gltf.scene
-    hall.scale.set(0.01, 0.01, 0.01)
-    hall.position.x = -0.1;
+//     hall.scale.set(0.01, 0.01, 0.01)
+//     hall.position.x = -0.1;
     // knifeScene.position.y = 1;
-    hall.position.z = 0;
-    hall.rotation.y = -1.7
+//     hall.position.z = 0;
+//     hall.rotation.y = -1.7
     scene.add(hall)
   })
 
