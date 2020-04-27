@@ -15,17 +15,20 @@ const scuff = new THREE.PositionalAudio(audioListener)
 const textureLoader = new THREE.TextureLoader()
 
 const zeroVector = new THREE.Vector3()
+const halfPi = Math.PI / 2
 
 var container;
 var camera, scene, raycaster, renderer;
 
 let room
 let knife
+let knifeTemplate
 let hall
 let bulbLight
 let gripBox = null
 let gripMarker = null
 let player = null
+let targetMesh = null
 
 // const knifeColor = 0x303030
 const knifeColor = 0x303030
@@ -119,10 +122,11 @@ function init() {
     knife = new THREE.Object3D()
     const knifeScene = gltf.scene
     knifeScene.scale.set(0.01, 0.01, 0.01)
-    knifeScene.position.x = -0.1;
+    knifeScene.position.x = -0.1
+    knifeTemplate = knifeScene.clone()
     // knifeScene.position.y = 1;
     knifeScene.position.z = 0;
-    knifeScene.rotation.y = -1.7
+    knifeScene.rotation.y = -halfPi
     knifeScene.children[2].material = new THREE.MeshStandardMaterial( { color: knifeColor, metalness: 0.8, roughness: 0.7 } )
     knifeScene.children[3].material = new THREE.MeshStandardMaterial( { color: knifeColor, metalness: 1.0, roughness: 0.2 } )
     knife.add(knifeScene)
@@ -133,7 +137,7 @@ function init() {
     knife.userData.eulerVelocity = new THREE.Vector3(0, .0003, -0.0003)
   })
 
-  // loader.load("room.glb", (gltf) => {
+  // loader.load("wall2.glb", (gltf) => {
   //   const room = gltf.scene
   //   room.position.z = -8
   //   scene.add(room)
@@ -144,9 +148,12 @@ function init() {
     materials.preload()
     const objLoader = new OBJLoader().setMaterials(materials).setPath(path)
     objLoader.load("stack.obj", object => {
-        const room = object
-        room.position.z = -8
-        scene.add(room)
+      const room = object
+      room.position.z = -8
+      const room1 = room.clone()
+      room1.position.y = 3.8
+      scene.add(room)
+      scene.add(room1)
     })
   })
 
@@ -193,9 +200,25 @@ function init() {
       transparent: true
     })
     const targetGeometry = new THREE.PlaneGeometry(2, 2)
-    const targetMesh = new THREE.Mesh(targetGeometry, targetMaterial);
+    targetMesh = new THREE.Mesh(targetGeometry, targetMaterial)
     targetMesh.position.set(0, 2.5, -9)
     room.add(targetMesh)
+  })
+
+  textureLoader.load('images/concrete.jpg', (texture) => {
+    texture.format = THREE.RGBAFormat
+    const material = new THREE.MeshLambertMaterial({
+      map: texture
+    })
+    const geometry = new THREE.PlaneGeometry(10, 10)
+    const mesh = new THREE.Mesh(geometry, material)
+    mesh.rotation.x = -halfPi
+    mesh.position.y = 0.01
+    const mesh1 = mesh.clone()
+    mesh.position.z = -5
+    mesh1.position.z = 5
+    room.add(mesh)
+    room.add(mesh1)
   })
 
   gripBox = new THREE.Object3D()
@@ -333,10 +356,11 @@ function handleController(time, controller) {
 
   }
   if ( controller.userData.isSelecting ) {
-    if (knife.material) {
-      knife.material.color.setHex( 0x550000 );
-    }
-    knife.position.copy( controller.position )
+    knife.visible = true
+    // if (knife.material) {
+    //   knife.material.color.setHex( 0x550000 );
+    // }
+    knife.position.copy(controller.position)
     knife.rotation.copy(controller.rotation)
 
     gripBox.position.copy(controller.position)
@@ -361,6 +385,32 @@ function animate() {
 
   renderer.setAnimationLoop( render );
 
+}
+
+function stickKnife(knifeWorld) {
+  const wallDepth = -8.76
+  if (knifeWorld.z > wallDepth) {
+    return
+  }
+  if (knifeWorld.distanceTo(targetMesh.position) > 1) {
+    //TODO: drop knife if target missed
+    // knife.userData.velocity = zeroVector.clone()
+    // const playerKnife = player.worldToLocal(knifeWorld)
+    // knife.position.set(playerKnife.x, playerKnife.y, wallDepth)
+    return
+  }
+  knife.userData.velocity = null
+  knife.userData.eulerVelocity = null
+  knife.visible = false
+  const stuckKnife = knifeTemplate.clone()
+  stuckKnife.position
+    .set(knifeWorld.x - 0.1, knifeWorld.y, wallDepth)
+  stuckKnife.rotation
+    .set(knife.rotation.x, knife.rotation.y - halfPi, knife.rotation.z)
+  scene.add(stuckKnife)
+  if (thump.context.state == "running") {
+    thump.play()
+  }
 }
 
 function render(time, frame) {
@@ -392,13 +442,7 @@ function render(time, frame) {
         scuff.play()
       }
     }
-    if (knifeWorld.z < -8.8) {
-      knife.userData.velocity = null
-      knife.userData.eulerVelocity = null
-      if (thump.context.state == "running") {
-        thump.play()
-      }
-    }
+    stickKnife(knifeWorld)
   }
 
   renderer.render( scene, camera );
