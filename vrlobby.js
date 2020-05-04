@@ -46,6 +46,7 @@ async function init() {
     currentSelect = hits[0][0] || hits[1][0]
     if (currentSelect) {
       const object = currentSelect.object.userData.object
+      console.log("hover", object.userData.url)
       let material = object.material
       material = material[1] || material
       if (!object.userData.color) {
@@ -57,6 +58,7 @@ async function init() {
     }
   })
   vrRoom.addSelectListener(() => {
+    console.log("select", currentSelect.object.userData.object.userData)
     window.location = currentSelect.object.userData.object.userData.url
   })
 }
