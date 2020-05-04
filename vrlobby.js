@@ -1,4 +1,4 @@
-import { VRRoom, logFlash } from "./VRRoom.js"
+import { VRRoom, logFlash } from "./vrroom.js"
 
 const vrRoom = new VRRoom()
 const scene = vrRoom.scene
