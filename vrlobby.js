@@ -34,7 +34,7 @@ async function addThumbBody() {
   tsoob.position.z = -4
   tsoob.position.y = 2
   tsoob.rotation.y =  -vrRoom.halfPi / 2
-  tsoob.userData.url = "tsoob.html"
+  tsoob.userData.url = "thumbstickoob.html"
   scene.add(tsoob)
 }
 
@@ -57,7 +57,7 @@ async function init() {
     }
   })
   vrRoom.addSelectListener(() => {
-    window.location = currentSelect.object.userData.object.url
+    window.location = currentSelect.object.userData.object.userData.url
   })
 }
 
