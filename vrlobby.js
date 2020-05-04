@@ -24,7 +24,7 @@ async function addKnifeLabel() {
   knifeLabel.position.z = -4
   knifeLabel.position.y = 2
   knifeLabel.rotation.y =+ vrRoom.halfPi / 2
-  knifeLabel.userData.url = "ndex.html"
+  knifeLabel.userData.url = "index.html"
   window.knifeLabel = knifeLabel
   scene.add(knifeLabel)
 }
