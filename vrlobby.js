@@ -58,7 +58,8 @@ async function init() {
       setTimeout(() => { material.color.r = object.userData.color.r }, 100)
     }
   })
-  vrRoom.addSelectListener(() => {
+  vrRoom.addSelectListener(async () => {
+    await vrRoom.endSession()
     window.location = currentURL
   })
 }
