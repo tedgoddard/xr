@@ -635,4 +635,9 @@ export class VRRoom {
     intersectList = list.map( item => boundingToBox(item) )
   }
 
+  async endSession() {
+    const session = renderer.xr.getSession()
+    await session.end()
+  }
+
 }
