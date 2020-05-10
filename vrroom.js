@@ -50,6 +50,8 @@ animate()
 let crazyGlobalCallback = null
 let renderPointerCallback = null
 let intersectList = []
+let controllerDecorator = null
+const selectListeners = []
 
 function addController(scene, controller) {
 
@@ -70,6 +72,7 @@ function addController(scene, controller) {
   controller.addEventListener('selectstart', onSelectStart)
   controller.addEventListener('selectend', onSelectEnd)
   controller.addEventListener('connected', event => {
+    controller.userData.xrInputSource = event.data
     controller.add(buildController( event.data))
   })
   controller.addEventListener('disconnected', event => {
@@ -225,7 +228,6 @@ function init() {
 }
 
 function buildController( data ) {
-
   switch ( data.targetRayMode ) {
 
     case 'tracked-pointer':
@@ -326,27 +328,36 @@ function handleController(time, controller) {
   controller.userData.eulerVelocity = calculateVelocity(rotations )
 
   if ( controller.userData.squeezeEvent ) {
-    if (knife.material) {
-      knife.material.color.setHex( 0x000000 );
+    if (knife) {
+      if (knife.material) {
+        knife.material.color.setHex( 0x000000 );
+      }
+      knife.position.copy( controller.position );
+      controller.userData.squeezeEvent = null
+      // logFlash("squeezing:\n" + JSON.stringify(renderer.xr.getSession()))
+      // knife.userData.velocity.multiplyScalar( 1 - ( 0.001 * delta ) );
+      // knife.position.add( knife.userData.velocity );
     }
-    knife.position.copy( controller.position );
-    controller.userData.squeezeEvent = null
-    // logFlash("squeezing:\n" + JSON.stringify(renderer.xr.getSession()))
-    // knife.userData.velocity.multiplyScalar( 1 - ( 0.001 * delta ) );
-    // knife.position.add( knife.userData.velocity );
-
   }
   if ( controller.userData.isSelecting ) {
-    knife.visible = true
-    // if (knife.material) {
-    //   knife.material.color.setHex( 0x550000 );
-    // }
-    knife.position.copy(controller.position)
-    knife.rotation.copy(controller.rotation)
+    for (const listener of selectListeners) {
+      try {
+        listener(time, controller)
+      } catch (e) {
+        console.error(e)
+      }
+    }
+    if (knife) {
+      knife.visible = true
+      // if (knife.material) {
+      //   knife.material.color.setHex( 0x550000 );
+      // }
+      knife.position.copy(controller.position)
+      knife.rotation.copy(controller.rotation)
 
-    gripBox.position.copy(controller.position)
-    gripBox.rotation.copy(controller.rotation)
-
+      gripBox.position.copy(controller.position)
+      gripBox.rotation.copy(controller.rotation)
+    }
   } else {
     if (knife && knife.material) {
       knife.material.color.setHex(knifeColor);
@@ -358,6 +369,9 @@ function handleController(time, controller) {
       knife.userData.eulerVelocity = controller.userData.eulerVelocity
     }
     controller.userData.selectEnded = false
+  }
+  if (controllerDecorator) {
+    controllerDecorator(time, controller)
   }
 }
 
@@ -577,12 +591,24 @@ function boundingToBox(object) {
   return box
 }
 
+function hapticPulse(controller, intensity, duration) {
+  const gamepad = controller?.userData?.xrInputSource?.gamepad
+  gamepad?.hapticActuators[0]?.pulse(intensity, duration)
+}
+
 export class VRRoom {
   constructor() {
     this.scene = scene
+    this.camera = camera
+    this.player = player
     this.halfPi = halfPi
     this.raycaster = raycaster
     this.intersects = intersects
+    this.hapticPulse = hapticPulse
+  }
+
+  set controllerDecorator(callback) {
+    controllerDecorator = callback
   }
 
   async loadTexturePanel(image) {
@@ -593,6 +619,17 @@ export class VRRoom {
       })
       const geometry = new THREE.PlaneGeometry(10, 10)
       return new THREE.Mesh(geometry, material)
+  }
+
+  async loadModel(name) {
+    return new Promise( (resolve, reject) => {
+      loader.load(name, gltf => {
+        const model = new THREE.Object3D()
+        const gltfScene = gltf.scene
+        model.add(gltfScene)
+        resolve(model)
+      })
+    })
   }
 
   async loadText(text, options) {
@@ -628,6 +665,10 @@ export class VRRoom {
 
   addSelectListener(listener) {
     crazyGlobalCallback = listener
+  }
+
+  onSelect(callback) {
+    selectListeners.push(callback)
   }
 
   addPointerListener(list, listener) {
