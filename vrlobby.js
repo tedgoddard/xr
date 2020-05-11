@@ -4,6 +4,7 @@ const vrRoom = new VRRoom()
 const scene = vrRoom.scene
 let knifeLabel = null
 let tsoob = null
+let rifleLabel = null
 let currentSelect = null
 let currentURL = null
 
@@ -18,13 +19,23 @@ async function loadFloor() {
   scene.add(mesh1)
 }
 
+async function addRifleLabel() {
+  rifleLabel = await vrRoom.loadText("Assault\n  Rifle")
+  rifleLabel.position.x -= 0.5
+  rifleLabel.position.z = -4
+  rifleLabel.position.y = 3
+  rifleLabel.userData.url = "assault.html"
+  window.rifleLabel = rifleLabel
+  scene.add(rifleLabel)
+}
+
 async function addKnifeLabel() {
   knifeLabel = await vrRoom.loadText(" Knife\nThrow")
   knifeLabel.position.x -= 2
   knifeLabel.position.z = -4
-  knifeLabel.position.y = 2
+  knifeLabel.position.y = 1.5
   knifeLabel.rotation.y =+ vrRoom.halfPi / 2
-  knifeLabel.userData.url = "index.html"
+  knifeLabel.userData.url = "knifethrow.html"
   window.knifeLabel = knifeLabel
   scene.add(knifeLabel)
 }
@@ -33,7 +44,7 @@ async function addThumbBody() {
   tsoob = await vrRoom.loadText("Thumbstick\nOut of Body")
   tsoob.position.x += 2
   tsoob.position.z = -4
-  tsoob.position.y = 2
+  tsoob.position.y = 1.5
   tsoob.rotation.y =  -vrRoom.halfPi / 2
   tsoob.userData.url = "thumbstickoob.html"
   scene.add(tsoob)
@@ -43,7 +54,8 @@ async function init() {
   await loadFloor()
   await addKnifeLabel()
   await addThumbBody()
-  vrRoom.addPointerListener([knifeLabel, tsoob], (hits) => {
+  await addRifleLabel()
+  vrRoom.addPointerListener([knifeLabel, rifleLabel, tsoob], (hits) => {
     currentSelect = hits[0][0] || hits[1][0]
     if (currentSelect) {
       const object = currentSelect.object.userData.object
