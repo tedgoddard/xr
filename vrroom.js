@@ -52,6 +52,8 @@ let renderPointerCallback = null
 let intersectList = []
 let controllerDecorator = null
 const selectListeners = []
+const squeezeListeners = []
+const renderListeners = []
 
 function addController(scene, controller) {
 
@@ -328,6 +330,13 @@ function handleController(time, controller) {
   controller.userData.eulerVelocity = calculateVelocity(rotations )
 
   if ( controller.userData.squeezeEvent ) {
+    for (const listener of squeezeListeners) {
+      try {
+        listener(time, controller)
+      } catch (e) {
+        console.error(e)
+      }
+    }
     if (knife) {
       if (knife.material) {
         knife.material.color.setHex( 0x000000 );
@@ -443,7 +452,15 @@ function render(time, frame) {
     stickKnife(knifeWorld)
   }
 
-  renderer.render( scene, camera );
+  for (const listener of renderListeners) {
+    try {
+      listener(delta, frame)
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  renderer.render(scene, camera)
 
 }
 
@@ -602,6 +619,7 @@ export class VRRoom {
     this.camera = camera
     this.player = player
     this.halfPi = halfPi
+    this.gravity = gravity
     this.raycaster = raycaster
     this.intersects = intersects
     this.hapticPulse = hapticPulse
@@ -669,6 +687,14 @@ export class VRRoom {
 
   onSelect(callback) {
     selectListeners.push(callback)
+  }
+
+  onSqueeze(callback) {
+    squeezeListeners.push(callback)
+  }
+
+  onRender(callback) {
+    renderListeners.push(callback)
   }
 
   addPointerListener(list, listener) {

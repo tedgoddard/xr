@@ -1,10 +1,12 @@
 import { VRRoom, logFlash } from "./vrroom.js"
+import * as THREE from './js/three.module.js';
 import { Object3D } from "./js/three.module.js"
 
 const vrRoom = new VRRoom()
 const scene = vrRoom.scene
 let rifle = null
 const rifleFire = { }
+const bullets = []
 
 async function loadFloor() {
   const mesh = await vrRoom.loadTexturePanel("images/concrete.jpg")
@@ -42,6 +44,36 @@ function controllerDecorator(time, controller) {
   rifle.rotation.copy(controller.rotation)
 }
 
+function makeBullet(controller) {
+  const geometry = new THREE.BoxGeometry( 0.01, 0.01, 0.1 )
+  var material = new THREE.MeshBasicMaterial( {color: 0xffff00, emissive: 1.0 } )
+  const bullet = new THREE.Mesh(geometry, material)
+  bullet.position.copy(controller.position)
+  const rotation = controller.rotation
+  rotation.x -= vrRoom.halfPi * 0.2
+  bullet.rotation.copy(rotation)
+  const rotationMatrix = new THREE.Matrix4()
+  rotationMatrix.makeRotationFromEuler(rotation)
+  const velocity = new THREE.Vector3(0, 0, -.01)
+  velocity.applyMatrix4(rotationMatrix)
+  bullet.userData.velocity = velocity
+  scene.add(bullet)
+  return bullet
+}
+
+
+function moveBullet(delta, bullet) {
+  let bulletVelocity = bullet.userData.velocity
+  bulletVelocity.add(vrRoom.gravity)
+  bulletVelocity = bulletVelocity.clone()
+  bulletVelocity.multiplyScalar(delta * 4)
+  bullet.position.add(bulletVelocity)
+  const bulletWorld = bullet.localToWorld(new THREE.Vector3())
+  if (bulletWorld.z < -10 ) {
+    scene.remove(bullet)
+  }
+}
+
 async function init() {
   await loadFloor()
   await loadRifle()
@@ -55,10 +87,26 @@ async function init() {
     }
     rifleFire.lastPulse = now
     vrRoom.hapticPulse(controller, 1.0, 50)
+    const bullet = makeBullet(controller)
+    bullets.push(bullet)
+    console.log(bullets)
+    if (bullets.length > 10) {
+      const discard = bullets.shift()
+      scene.remove(discard)
+    }
   })
-  setInterval(() => {
-    vrRoom.hapticPulse()
-  }, 20000)
+  vrRoom.onSqueeze((time, controller) => {
+    controllerDecorator = null
+    controller.add(rifle)
+    rifle.position.set(0, 0, 0)
+    // rifle.children[0].position.y = -2
+  })
+  vrRoom.onRender( (delta, frame) => {
+    for (const bullet of bullets) {
+// console.log("moveBullet", bullet)
+      moveBullet(delta, bullet)
+    }
+  })
 }
 
 init().then()
