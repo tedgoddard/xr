@@ -12,6 +12,7 @@ const audioListener = new THREE.AudioListener()
 const audioLoader = new THREE.AudioLoader()
 const thump = new THREE.PositionalAudio(audioListener)
 const scuff = new THREE.PositionalAudio(audioListener)
+const ar15n = new THREE.PositionalAudio(audioListener)
 const textureLoader = new THREE.TextureLoader()
 
 const zeroVector = new THREE.Vector3()
@@ -111,6 +112,10 @@ function init() {
   audioLoader.load( 'sounds/scuff.ogg', buffer => {
     scuff.setBuffer(buffer)
     scuff.setRefDistance(20)
+  })
+  audioLoader.load( 'sounds/ar15-near.ogg', buffer => {
+    ar15n.setBuffer(buffer)
+    ar15n.setRefDistance(20)
   })
 
   room = new THREE.LineSegments(
@@ -223,6 +228,7 @@ function init() {
       console.log("click")
       thump.context.resume()
       scuff.context.resume()
+      ar15n.context.resume()
     }
   }
   document.body.appendChild( VRButton.createButton( renderer, buttonOptions ) );
@@ -289,7 +295,7 @@ function handleController(time, controller) {
     const values = thumbStick.values
     if (hand == "left") {
       const xrCamera = renderer.xr.getCamera(camera)
-      const cameraDirection = xrCamera.getWorldDirection()
+      const cameraDirection = xrCamera.getWorldDirection(new THREE.Vector3())
       const strafeDirection = new THREE.Vector3(-cameraDirection.z, 0, cameraDirection.x)
       cameraDirection.y = 0
       player.position.add(cameraDirection.multiplyScalar(-values.yAxis / 10))
@@ -533,14 +539,14 @@ const getMethods = (obj) => {
 }
 
 export function logFlash(text, time = 1) {
-  let cameraDirection = camera.getWorldDirection()
+  let cameraDirection = camera.getWorldDirection(new THREE.Vector3())
   // const cameraPosition = camera.position.clone()
   // const labelPosition = cameraPosition.add(cameraDirection)
   let labelPosition = { x: 0, y: 1, z: 4 }
   const session = renderer.xr.getSession()
   if (session) {
     const xrCamera = renderer.xr.getCamera(camera)
-    const cameraDirection = xrCamera.getWorldDirection()
+    const cameraDirection = xrCamera.getWorldDirection(new THREE.Vector3())
     cameraDirection.z = -4
     // const { x, y, z } = cameraDirection
     // cameraDirection.multiplyScalar(-1)
@@ -623,6 +629,7 @@ export class VRRoom {
     this.raycaster = raycaster
     this.intersects = intersects
     this.hapticPulse = hapticPulse
+    this.sounds = { thump, scuff, ar15n}
   }
 
   set controllerDecorator(callback) {
@@ -695,6 +702,12 @@ export class VRRoom {
 
   onRender(callback) {
     renderListeners.push(callback)
+  }
+
+  playSound(sound) {
+    if (sound.context.state == "running") {
+      sound.play()
+    }
   }
 
   addPointerListener(list, listener) {

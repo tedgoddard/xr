@@ -23,6 +23,7 @@ async function loadRifle() {
   rifle = new Object3D()
   const rifleModel = await vrRoom.loadModel("models/scar.glb")
   rifle.add(rifleModel)
+  rifle.add(vrRoom.sounds.ar15n)
   rifleModel.rotation.y = vrRoom.halfPi
   rifleModel.rotation.x = - vrRoom.halfPi * 0.2
   rifleModel.position.y = 0.24
@@ -49,15 +50,16 @@ function makeBullet(controller) {
   var material = new THREE.MeshBasicMaterial( {color: 0xffff00, emissive: 1.0 } )
   const bullet = new THREE.Mesh(geometry, material)
   bullet.position.copy(controller.position)
-  const rotation = controller.rotation
+  const rotation = controller.rotation.clone()
   rotation.x -= vrRoom.halfPi * 0.2
   bullet.rotation.copy(rotation)
   const rotationMatrix = new THREE.Matrix4()
   rotationMatrix.makeRotationFromEuler(rotation)
-  const velocity = new THREE.Vector3(0, 0, -.01)
+  const velocity = new THREE.Vector3(0, 0, -0.05)
   velocity.applyMatrix4(rotationMatrix)
   bullet.userData.velocity = velocity
   scene.add(bullet)
+  vrRoom.playSound(vrRoom.sounds.ar15n)
   return bullet
 }
 
@@ -89,7 +91,6 @@ async function init() {
     vrRoom.hapticPulse(controller, 1.0, 50)
     const bullet = makeBullet(controller)
     bullets.push(bullet)
-    console.log(bullets)
     if (bullets.length > 10) {
       const discard = bullets.shift()
       scene.remove(discard)
@@ -103,7 +104,6 @@ async function init() {
   })
   vrRoom.onRender( (delta, frame) => {
     for (const bullet of bullets) {
-// console.log("moveBullet", bullet)
       moveBullet(delta, bullet)
     }
   })
