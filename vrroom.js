@@ -574,10 +574,10 @@ async function ensureHelvetiker() {
   }
 }
 
-function raycastIntersect(controller, objects) {
+function raycastIntersect(origin, objects) {
   const tempMatrix = new THREE.Matrix4()
-  tempMatrix.identity().extractRotation(controller.matrixWorld)
-  raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld)
+  tempMatrix.identity().extractRotation(origin.matrixWorld)
+  raycaster.ray.origin.setFromMatrixPosition(origin.matrixWorld)
   raycaster.ray.direction.set( 0, 0, - 1 ).applyMatrix4(tempMatrix)
   return raycaster.intersectObjects(objects)
 }
@@ -627,6 +627,7 @@ export class VRRoom {
     this.halfPi = halfPi
     this.gravity = gravity
     this.raycaster = raycaster
+    this.raycastIntersect = raycastIntersect
     this.intersects = intersects
     this.hapticPulse = hapticPulse
     this.sounds = { thump, scuff, ar15n}

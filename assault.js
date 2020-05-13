@@ -5,18 +5,23 @@ import { Object3D } from "./js/three.module.js"
 const vrRoom = new VRRoom()
 const scene = vrRoom.scene
 let rifle = null
+let impact = null
 const rifleFire = { }
 const bullets = []
+const crates = []
 
 async function loadFloor() {
   const mesh = await vrRoom.loadTexturePanel("images/concrete.jpg")
   mesh.rotation.x = -vrRoom.halfPi
   mesh.position.y = 0.01
   const mesh1 = mesh.clone()
+  const mesh2 = mesh.clone()
   mesh.position.z = -5
   mesh1.position.z = 5
+  mesh2.position.z = -10
   scene.add(mesh)
   scene.add(mesh1)
+  scene.add(mesh2)
 }
 
 async function loadRifle() {
@@ -32,6 +37,23 @@ async function loadRifle() {
   scene.add(rifle)
   rifle.position.set(0, 2, 0)
   rifle.scale.set(0.5, 0.5, 0.5)
+}
+
+function addCrate() {
+  const geometry = new THREE.BoxGeometry(1, 1, 1)
+  const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 })
+  var cube = new THREE.Mesh(geometry, material)
+  cube.position.set(-1, 1, -9)
+  scene.add(cube)
+  crates.push(cube)
+}
+
+function addImpact() {
+  const geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1)
+  const material = new THREE.MeshBasicMaterial({ color: 0x000000 })
+  impact = new THREE.Mesh(geometry, material)
+  impact.position.set(-1, -1, -1)
+  scene.add(impact)
 }
 
 function controllerDecorator(time, controller) {
@@ -69,6 +91,11 @@ function moveBullet(delta, bullet) {
   bulletVelocity.add(vrRoom.gravity)
   bulletVelocity = bulletVelocity.clone()
   bulletVelocity.multiplyScalar(delta * 4)
+  const collisions = vrRoom.raycastIntersect(bullet, crates)
+  if (collisions.length > 0) {
+    console.log(collisions)
+    impact.position.copy(collisions[0].point)
+  }
   bullet.position.add(bulletVelocity)
   const bulletWorld = bullet.localToWorld(new THREE.Vector3())
   if (bulletWorld.z < -10 ) {
@@ -79,6 +106,8 @@ function moveBullet(delta, bullet) {
 async function init() {
   await loadFloor()
   await loadRifle()
+  addCrate()
+  addImpact()
   vrRoom.camera.position.set(0, 1.6, 5)
   vrRoom.controllerDecorator = controllerDecorator
   vrRoom.onSelect((time, controller) => {
