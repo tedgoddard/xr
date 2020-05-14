@@ -5,7 +5,7 @@ import { Object3D } from "./js/three.module.js"
 const vrRoom = new VRRoom()
 const scene = vrRoom.scene
 let rifle = null
-let impact = null
+let impacts = []
 const rifleFire = { }
 const bullets = []
 const crates = []
@@ -48,12 +48,19 @@ function addCrate() {
   crates.push(cube)
 }
 
-function addImpact() {
+function makeImpact() {
   const geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1)
   const material = new THREE.MeshBasicMaterial({ color: 0x000000 })
-  impact = new THREE.Mesh(geometry, material)
+  const impact = new THREE.Mesh(geometry, material)
   impact.position.set(-1, -1, -1)
   scene.add(impact)
+  return impact
+}
+
+function addImpacts() {
+  for (let i = 0; i < 10; i++) {
+    impacts.push(makeImpact())
+  }
 }
 
 function controllerDecorator(time, controller) {
@@ -95,8 +102,9 @@ function moveBullet(delta, bullet) {
   bulletVelocity.multiplyScalar(delta * 4)
   const collisions = vrRoom.raycastIntersect(bullet, crates)
   if (collisions.length > 0) {
-    console.log(collisions)
+    const impact = impacts.shift()
     impact.position.copy(collisions[0].point)
+    impacts.push(impact)
   }
   bullet.position.add(bulletVelocity)
   const bulletWorld = bullet.localToWorld(new THREE.Vector3())
@@ -109,7 +117,7 @@ async function init() {
   await loadFloor()
   await loadRifle()
   addCrate()
-  addImpact()
+  addImpacts()
   vrRoom.camera.position.set(0, 1.6, 5)
   vrRoom.controllerDecorator = controllerDecorator
   vrRoom.onSelect((time, controller) => {
