@@ -18,7 +18,7 @@ async function loadFloor() {
   const mesh2 = mesh.clone()
   mesh.position.z = -5
   mesh1.position.z = 5
-  mesh2.position.z = -10
+  mesh2.position.z = -15
   scene.add(mesh)
   scene.add(mesh1)
   scene.add(mesh2)
@@ -28,7 +28,7 @@ async function loadRifle() {
   rifle = new Object3D()
   const rifleModel = await vrRoom.loadModel("models/scar.glb")
   rifle.add(rifleModel)
-  rifle.add(vrRoom.sounds.ar15n)
+  vrRoom.sounds.ar15n.forEach( sound => rifle.add(sound) )
   rifleModel.rotation.y = vrRoom.halfPi
   rifleModel.rotation.x = - vrRoom.halfPi * 0.2
   rifleModel.position.y = 0.24
@@ -81,7 +81,9 @@ function makeBullet(controller) {
   velocity.applyMatrix4(rotationMatrix)
   bullet.userData.velocity = velocity
   scene.add(bullet)
-  vrRoom.playSound(vrRoom.sounds.ar15n)
+  const sound = vrRoom.sounds.ar15n.shift()
+  vrRoom.playSound(sound)
+  vrRoom.sounds.ar15n.push(sound)
   return bullet
 }
 
@@ -113,7 +115,7 @@ async function init() {
   vrRoom.onSelect((time, controller) => {
     const now = Date.now()
     const lastPulse = rifleFire.lastPulse
-    if (now - lastPulse < 200) {
+    if (now - lastPulse < 100) {
       return
     }
     rifleFire.lastPulse = now

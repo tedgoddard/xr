@@ -12,7 +12,10 @@ const audioListener = new THREE.AudioListener()
 const audioLoader = new THREE.AudioLoader()
 const thump = new THREE.PositionalAudio(audioListener)
 const scuff = new THREE.PositionalAudio(audioListener)
-const ar15n = new THREE.PositionalAudio(audioListener)
+const ar15n = [0, 1, 2, 3, 4]
+for (let i in ar15n) {
+  ar15n[i] = new THREE.PositionalAudio(audioListener)
+}
 const textureLoader = new THREE.TextureLoader()
 
 const zeroVector = new THREE.Vector3()
@@ -114,8 +117,10 @@ function init() {
     scuff.setRefDistance(20)
   })
   audioLoader.load( 'sounds/ar15-near.ogg', buffer => {
-    ar15n.setBuffer(buffer)
-    ar15n.setRefDistance(20)
+    ar15n.forEach( sound => {
+      sound.setBuffer(buffer)
+      sound.setRefDistance(20)
+    })
   })
 
   room = new THREE.LineSegments(
@@ -228,7 +233,7 @@ function init() {
       console.log("click")
       thump.context.resume()
       scuff.context.resume()
-      ar15n.context.resume()
+      ar15n.forEach( sound => sound.context.resume() )
     }
   }
   document.body.appendChild( VRButton.createButton( renderer, buttonOptions ) );
