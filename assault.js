@@ -68,7 +68,7 @@ function makeImpact() {
 }
 
 function addImpacts() {
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 100; i++) {
     impacts.push(makeImpact())
   }
 }
@@ -86,13 +86,13 @@ function controllerDecorator(time, controller) {
 
 function makeBullet(controller) {
   const geometry = new THREE.BoxGeometry( 0.01, 0.01, 0.1 )
-  var material = new THREE.MeshBasicMaterial( {color: 0x660000, emissive: 0.6 } )
+  var material = new THREE.MeshBasicMaterial( {color: 0x666600, emissive: 0.6 } )
   const bullet = new THREE.Mesh(geometry, material)
   const barrel = rifle.userData.barrel
   bullet.position.copy(barrel.localToWorld(new THREE.Vector3()))
   const direction = new THREE.Vector3()
   barrel.getWorldDirection(direction)
-  const velocity = direction.multiplyScalar(0.01)
+  const velocity = direction.multiplyScalar(0.03)
   bullet.userData.velocity = velocity
   console.log(velocity)
   scene.add(bullet)
@@ -115,9 +115,12 @@ function moveBullet(delta, bullet) {
   bulletVelocity.multiplyScalar(delta * 4)
   const collisions = vrRoom.raycastIntersect(bullet, crates)
   if (collisions.length > 0) {
-    const impact = impacts.shift()
-    impact.position.copy(collisions[0].point)
-    impacts.push(impact)
+    const collision = collisions[0]
+    if (bulletVelocity.length() > collision.distance) {
+      const impact = impacts.shift()
+      impact.position.copy(collision.point)
+      impacts.push(impact)
+    }
   }
   bullet.position.add(bulletVelocity)
   const bulletWorld = bullet.localToWorld(new THREE.Vector3())
@@ -154,6 +157,9 @@ async function init() {
     rifle.position.set(0, 0, 0)
     rifle.rotation.y = - vrRoom.halfPi * 0.05
     rifle.rotation.x = - vrRoom.halfPi * 0.1
+    if (controller.children.length > 0) {
+      controller.children[0].visible = false
+    }
   })
   vrRoom.onRender( (delta, frame) => {
     for (const bullet of bullets) {
