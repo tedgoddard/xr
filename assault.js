@@ -26,30 +26,40 @@ async function loadFloor() {
 
 async function loadRifle() {
   rifle = new Object3D()
+  const barrel = new Object3D()
   const rifleModel = await vrRoom.loadModel("models/scar.glb")
   rifle.add(rifleModel)
+  rifleModel.add(barrel)
   vrRoom.sounds.ar15n.forEach( sound => rifle.add(sound) )
   rifleModel.rotation.y = vrRoom.halfPi
   rifleModel.rotation.x = - vrRoom.halfPi * 0.2
+  barrel.rotation.copy(rifleModel.rotation)
+  barrel.position.y = -0.1
   rifleModel.position.y = 0.24
   rifleModel.position.z = 0.05
   // console.log(rifle)
   scene.add(rifle)
   rifle.position.set(0, 2, 0)
   rifle.scale.set(0.5, 0.5, 0.5)
+  rifle.userData.barrel = barrel
 }
 
-function addCrate() {
+function makeCrate(x, y, z) {
   const geometry = new THREE.BoxGeometry(1, 1, 1)
-  const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 })
+  const material = new THREE.MeshLambertMaterial({ color: 0x666666 })
   var cube = new THREE.Mesh(geometry, material)
-  cube.position.set(-1, 1, -9)
+  cube.position.set(x, y, z)
   scene.add(cube)
-  crates.push(cube)
+  return cube
+}
+
+function addCrates() {
+  crates.push(makeCrate(-1, 1, -9))
+  crates.push(makeCrate(2, 1, -3))
 }
 
 function makeImpact() {
-  const geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1)
+  const geometry = new THREE.BoxGeometry(0.01, 0.01, 0.01)
   const material = new THREE.MeshBasicMaterial({ color: 0x000000 })
   const impact = new THREE.Mesh(geometry, material)
   impact.position.set(-1, -1, -1)
@@ -76,18 +86,21 @@ function controllerDecorator(time, controller) {
 
 function makeBullet(controller) {
   const geometry = new THREE.BoxGeometry( 0.01, 0.01, 0.1 )
-  var material = new THREE.MeshBasicMaterial( {color: 0xffff00, emissive: 1.0 } )
+  var material = new THREE.MeshBasicMaterial( {color: 0x660000, emissive: 0.6 } )
   const bullet = new THREE.Mesh(geometry, material)
-  bullet.position.copy(controller.position)
-  const rotation = controller.rotation.clone()
-  rotation.x -= vrRoom.halfPi * 0.2
-  bullet.rotation.copy(rotation)
-  const rotationMatrix = new THREE.Matrix4()
-  rotationMatrix.makeRotationFromEuler(rotation)
-  const velocity = new THREE.Vector3(0, 0, -0.05)
-  velocity.applyMatrix4(rotationMatrix)
+  const barrel = rifle.userData.barrel
+  bullet.position.copy(barrel.localToWorld(new THREE.Vector3()))
+  const direction = new THREE.Vector3()
+  barrel.getWorldDirection(direction)
+  const velocity = direction.multiplyScalar(0.01)
   bullet.userData.velocity = velocity
+  console.log(velocity)
   scene.add(bullet)
+  const rotationMatrix = new THREE.Matrix4()
+  const eye = new THREE.Vector3()
+  const up = new THREE.Vector3(0, 1, 0)
+  rotationMatrix.lookAt(eye, direction, up)
+  bullet.rotation.setFromRotationMatrix(rotationMatrix)
   const sound = vrRoom.sounds.ar15n.shift()
   vrRoom.playSound(sound)
   vrRoom.sounds.ar15n.push(sound)
@@ -116,7 +129,7 @@ function moveBullet(delta, bullet) {
 async function init() {
   await loadFloor()
   await loadRifle()
-  addCrate()
+  addCrates()
   addImpacts()
   vrRoom.camera.position.set(0, 1.6, 5)
   vrRoom.controllerDecorator = controllerDecorator
@@ -136,10 +149,11 @@ async function init() {
     }
   })
   vrRoom.onSqueeze((time, controller) => {
-    controllerDecorator = null
+    vrRoom.controllerDecorator = null
     controller.add(rifle)
     rifle.position.set(0, 0, 0)
-    // rifle.children[0].position.y = -2
+    rifle.rotation.y = - vrRoom.halfPi * 0.05
+    rifle.rotation.x = - vrRoom.halfPi * 0.1
   })
   vrRoom.onRender( (delta, frame) => {
     for (const bullet of bullets) {

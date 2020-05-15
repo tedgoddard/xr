@@ -130,15 +130,19 @@ function init() {
   scene.add( room );
 
   scene.add( new THREE.HemisphereLight( 0x606060, 0x404040 ) );
+  scene.add(new THREE.AmbientLight(0x202020))
 
-  var light = new THREE.DirectionalLight( 0xffffff );
+  var light = new THREE.DirectionalLight( 0x202020 );
   light.position.set( 1, 1, 1 ).normalize();
-  scene.add( light );
+  scene.add(light)
 
-  bulbLight = new THREE.PointLight( 0xffee88, 1, 100, 2 );
-  bulbLight.position.set( 0, 2, 0 );
-  // bulbLight.castShadow = true;
-  scene.add( bulbLight );
+  bulbLight = new THREE.SpotLight(0xffee88)
+  bulbLight.position.set(0, 10, -5)
+  bulbLight.angle = Math.PI / 6
+  const target = new THREE.Object3D()
+  target.position.set(0, 0, -5)
+  scene.add(bulbLight)
+  scene.add(target)
 
   var geometry = new THREE.BoxBufferGeometry( 0.15, 0.15, 0.15 );
 
