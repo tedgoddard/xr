@@ -5,6 +5,11 @@ import { XRControllerModelFactory } from './jsm/webxr/XRControllerModelFactory.j
 import { GLTFLoader } from './jsm/loaders/GLTFLoader.js'
 import { OBJLoader } from './jsm/loaders/OBJLoader.js'
 import { MTLLoader } from './jsm/loaders/MTLLoader.js'
+// import WebXRPolyfill from './jsm/webxr-polyfill.module.js'
+
+// if (!navigator.xr) {
+//   const polyfill = new WebXRPolyfill()
+// }
 
 var clock = new THREE.Clock();
 const loader = new GLTFLoader()
