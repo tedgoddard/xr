@@ -63,6 +63,7 @@ let controllerDecorator = null
 const selectListeners = []
 const squeezeListeners = []
 const renderListeners = []
+let moveListener = delta => delta
 
 function addController(scene, controller) {
 
@@ -312,8 +313,10 @@ function handleController(time, controller) {
       const cameraDirection = xrCamera.getWorldDirection(new THREE.Vector3())
       const strafeDirection = new THREE.Vector3(-cameraDirection.z, 0, cameraDirection.x)
       cameraDirection.y = 0
-      player.position.add(cameraDirection.multiplyScalar(-values.yAxis / 10))
-      player.position.add(strafeDirection.multiplyScalar(values.xAxis / 10))
+      const delta = cameraDirection.multiplyScalar(-values.yAxis / 10)
+      const strafeDelta = strafeDirection.multiplyScalar(values.xAxis / 10)
+      delta.add(strafeDelta)
+      player.position.add(moveListener(delta))
     } else if (hand == "right") {
       player.rotation.y += - values.xAxis / 10
     }
@@ -728,6 +731,10 @@ export class VRRoom {
   addPointerListener(list, listener) {
     renderPointerCallback = listener
     intersectList = list.map( item => boundingToBox(item) )
+  }
+
+  addMoveListener(listener) {
+    moveListener = listener
   }
 
   async endSession() {

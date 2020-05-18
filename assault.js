@@ -1,6 +1,7 @@
 import { VRRoom, logFlash } from "./vrroom.js"
 import * as THREE from './js/three.module.js';
 import { Object3D } from "./js/three.module.js"
+import { Maze } from "./maze.js"
 
 const vrRoom = new VRRoom()
 const scene = vrRoom.scene
@@ -9,6 +10,8 @@ let impacts = []
 const rifleFire = { }
 const bullets = []
 const crates = []
+
+const mazeGenerator = new Maze()
 
 async function loadFloor() {
   const mesh = await vrRoom.loadTexturePanel("images/concrete.jpg")
@@ -45,17 +48,29 @@ async function loadRifle() {
 }
 
 function makeCrate(x, y, z) {
-  const geometry = new THREE.BoxGeometry(1, 1, 1)
+  const geometry = new THREE.BoxGeometry(1, 2, 1)
   const material = new THREE.MeshLambertMaterial({ color: 0x666666 })
   var cube = new THREE.Mesh(geometry, material)
   cube.position.set(x, y, z)
   scene.add(cube)
+  const box = new THREE.Box3()
+  box.setFromObject(cube)
+  box.expandByScalar(0.09)
+  cube.userData.boundingBox = box
   return cube
 }
 
 function addCrates() {
-  crates.push(makeCrate(-1, 1, -9))
-  crates.push(makeCrate(2, 1, -3))
+  const maze = mazeGenerator.simple(10, 10, 0.3)
+  for (let y = 0; y < maze.length; y++) {
+    const row = maze[y]
+    for (let x = 0; x < row.length; x++) {
+      const cell = row[x]
+      if (cell) {
+        crates.push(makeCrate(x - 5, 1, -y))
+      }
+    }
+  }
 }
 
 function makeImpact() {
@@ -136,6 +151,7 @@ async function init() {
   addImpacts()
   vrRoom.camera.position.set(0, 1.6, 5)
   vrRoom.controllerDecorator = controllerDecorator
+  vrRoom.player.position.set(0, 0, 3)
   vrRoom.onSelect((time, controller) => {
     const now = Date.now()
     const lastPulse = rifleFire.lastPulse
@@ -165,6 +181,17 @@ async function init() {
     for (const bullet of bullets) {
       moveBullet(delta, bullet)
     }
+  })
+  vrRoom.addMoveListener( delta => {
+    const position = vrRoom.player.position.clone()
+    position.add(delta)
+    for (const crate of crates) {
+      const boundingBox = crate.userData.boundingBox
+      if (boundingBox.containsPoint(position)) {
+        return new THREE.Vector3()
+      }
+    }
+    return delta
   })
 }
 
