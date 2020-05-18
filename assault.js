@@ -1,7 +1,7 @@
 import { VRRoom, logFlash } from "./vrroom.js"
 import * as THREE from './js/three.module.js';
 import { Object3D } from "./js/three.module.js"
-import { Maze } from "./maze.js"
+import { worm } from "./maze.js"
 
 const vrRoom = new VRRoom()
 const scene = vrRoom.scene
@@ -10,8 +10,6 @@ let impacts = []
 const rifleFire = { }
 const bullets = []
 const crates = []
-
-const mazeGenerator = new Maze()
 
 async function loadFloor() {
   const mesh = await vrRoom.loadTexturePanel("images/concrete.jpg")
@@ -61,7 +59,7 @@ function makeCrate(x, y, z) {
 }
 
 function addCrates() {
-  const maze = mazeGenerator.simple(10, 10, 0.3)
+  const maze = worm(10, 10)
   for (let y = 0; y < maze.length; y++) {
     const row = maze[y]
     for (let x = 0; x < row.length; x++) {
