@@ -4,6 +4,7 @@ import { Object3D } from "./js/three.module.js"
 import { worm } from "./maze.js"
 
 const vrRoom = new VRRoom()
+window.vrRoom = vrRoom
 const scene = vrRoom.scene
 let rifle = null
 let impacts = []
@@ -15,14 +16,14 @@ async function loadFloor() {
   const mesh = await vrRoom.loadTexturePanel("images/concrete.jpg")
   mesh.rotation.x = -vrRoom.halfPi
   mesh.position.y = 0.01
-  const mesh1 = mesh.clone()
-  const mesh2 = mesh.clone()
-  mesh.position.z = -5
-  mesh1.position.z = 5
-  mesh2.position.z = -15
-  scene.add(mesh)
-  scene.add(mesh1)
-  scene.add(mesh2)
+  for (let j = -2; j < 1; j++) {
+    for (let i = -1; i < 2; i++) {
+      const floor = mesh.clone()
+      floor.position.x = i * 10
+      floor.position.z = j * 10
+      scene.add(floor)
+    }
+  }
 }
 
 async function loadRifle() {
@@ -46,7 +47,9 @@ async function loadRifle() {
 }
 
 function makeCrate(x, y, z) {
-  const geometry = new THREE.BoxGeometry(1, 2, 1)
+  const height = Math.floor(Math.random() * 3.5)
+  y = height / 2
+  const geometry = new THREE.BoxGeometry(2, height, 2)
   const material = new THREE.MeshLambertMaterial({ color: 0x666666 })
   var cube = new THREE.Mesh(geometry, material)
   cube.position.set(x, y, z)
@@ -59,13 +62,13 @@ function makeCrate(x, y, z) {
 }
 
 function addCrates() {
-  const maze = worm(10, 10)
+  const maze = worm(10, 10, { steps: 8, style: "+" })
   for (let y = 0; y < maze.length; y++) {
     const row = maze[y]
     for (let x = 0; x < row.length; x++) {
       const cell = row[x]
       if (cell) {
-        crates.push(makeCrate(x - 5, 1, -y))
+        crates.push(makeCrate((x - 5) * 2, 1, y * -2))
       }
     }
   }

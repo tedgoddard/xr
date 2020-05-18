@@ -128,8 +128,9 @@ function deform(maze) {
   apply(maze, deformation)
 }
 
-export function worm(width, height, steps = 10) {
-  const maze = pipe(width, height)
+export function worm(width, height, options) {
+  const { steps, style } = options || { steps: 10 }
+  const maze = pipe(width, height, options)
   for (let i = 0; i < steps; i++) {
     deform(maze)
   }
@@ -142,15 +143,32 @@ function dump(maze) {
   return maze.map(prettyRow).join("\n")
 }
 
-function pipe(width, height, options = { }) {
+function styledCell(width, height, options, i, j) {
+  const style = options.style || "|"
+
+  if (["|", "+"].includes(style)) {
+    const middle = Math.floor(width / 2)
+    if (i == middle) {
+      return 0
+    }
+  }
+
+  if (["-", "+"].includes(style)) {
+    const middle = Math.floor(height / 2)
+    if (j == middle) {
+      return 0
+    }
+  }
+
+  return 1
+}
+
+function pipe(width, height, options) {
   const result = []
-  const direction = options.horizontal ? height : width
-  const middle = Math.floor(direction / 2)
   for (let i = 0; i < height; i++) {
     const row = []
     for (let j = 0; j < width; j++) {
-      const check = options.horizontal ? i : j
-      const cell = (check != middle) + 0
+      const cell = styledCell(width, height, options, i, j)
       row.push(cell)
     }
     result.push(row)

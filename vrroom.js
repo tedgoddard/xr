@@ -108,7 +108,7 @@ function init() {
   player = new THREE.Object3D()
   scene.add(player)
 
-  camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 25 );
+  camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 50 );
   camera.position.set( 0, 1.6, 3 );
   camera.add(audioListener)
   // scene.add( camera );
@@ -740,6 +740,11 @@ export class VRRoom {
   async endSession() {
     const session = renderer.xr.getSession()
     await session.end()
+  }
+
+  lookDown = () => {
+    this.player.rotation.x = -1.5
+    this.player.position.set(0, 30, -5)
   }
 
 }
