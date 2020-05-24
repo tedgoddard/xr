@@ -2,7 +2,9 @@ import { VRRoom, logFlash } from "./vrroom.js"
 import * as THREE from './js/three.module.js';
 import { Object3D } from "./js/three.module.js"
 import { worm } from "./maze.js"
+import { Creature } from "./creature.js"
 
+const halfPi = Math.PI / 2
 const vrRoom = new VRRoom()
 window.vrRoom = vrRoom
 const scene = vrRoom.scene
@@ -11,10 +13,15 @@ let impacts = []
 const rifleFire = { }
 const bullets = []
 const crates = []
+let creature = null
+let maze = null
+
+const blackMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 })
+const redMaterial = new THREE.MeshBasicMaterial({ color: 0x660000 })
 
 async function loadFloor() {
   const mesh = await vrRoom.loadTexturePanel("images/concrete.jpg")
-  mesh.rotation.x = -vrRoom.halfPi
+  mesh.rotation.x = -halfPi
   mesh.position.y = 0.01
   for (let j = -2; j < 1; j++) {
     for (let i = -1; i < 2; i++) {
@@ -33,8 +40,8 @@ async function loadRifle() {
   rifle.add(rifleModel)
   rifleModel.add(barrel)
   vrRoom.sounds.ar15n.forEach( sound => rifle.add(sound) )
-  rifleModel.rotation.y = vrRoom.halfPi
-  rifleModel.rotation.x = - vrRoom.halfPi * 0.2
+  rifleModel.rotation.y = halfPi
+  rifleModel.rotation.x = - halfPi * 0.2
   barrel.rotation.copy(rifleModel.rotation)
   barrel.position.y = -0.1
   rifleModel.position.y = 0.24
@@ -51,6 +58,8 @@ function makeCrate(x, y, z) {
   y = height / 2
   const geometry = new THREE.BoxGeometry(2, height, 2)
   const material = new THREE.MeshLambertMaterial({ color: 0x666666 })
+  material.transparent = true
+  material.opacity = 0.5
   var cube = new THREE.Mesh(geometry, material)
   cube.position.set(x, y, z)
   scene.add(cube)
@@ -62,7 +71,7 @@ function makeCrate(x, y, z) {
 }
 
 function addCrates() {
-  const maze = worm(10, 10, { steps: 8, style: "+" })
+  maze = worm(10, 10, { steps: 8, style: "+" })
   for (let y = 0; y < maze.length; y++) {
     const row = maze[y]
     for (let x = 0; x < row.length; x++) {
@@ -108,9 +117,9 @@ function makeBullet(controller) {
   bullet.position.copy(barrel.localToWorld(new THREE.Vector3()))
   const direction = new THREE.Vector3()
   barrel.getWorldDirection(direction)
-  const velocity = direction.multiplyScalar(0.03)
+  // const velocity = direction.multiplyScalar(0.03)
+  const velocity = direction.multiplyScalar(0.005)
   bullet.userData.velocity = velocity
-  console.log(velocity)
   scene.add(bullet)
   const rotationMatrix = new THREE.Matrix4()
   const eye = new THREE.Vector3()
@@ -123,18 +132,32 @@ function makeBullet(controller) {
   return bullet
 }
 
+function moveCreature(delta, frame) {
+  const { goal, speed } = creature.userData
+  const velocity = goal.clone()
+  velocity.sub(creature.position)
+  velocity.normalize()
+  velocity.multiplyScalar(speed)
+  creature.position.add(velocity)
+}
 
 function moveBullet(delta, bullet) {
   let bulletVelocity = bullet.userData.velocity
   bulletVelocity.add(vrRoom.gravity)
   bulletVelocity = bulletVelocity.clone()
   bulletVelocity.multiplyScalar(delta * 4)
-  const collisions = vrRoom.raycastIntersect(bullet, crates)
+  const collisions = vrRoom.raycastIntersect(bullet, [...crates, creature])
   if (collisions.length > 0) {
     const collision = collisions[0]
     if (bulletVelocity.length() > collision.distance) {
       const impact = impacts.shift()
       impact.position.copy(collision.point)
+      if (collision.object.parent.name == "creature") {
+        impact.material = redMaterial
+        setTimeout( () => { impact.position.set(-1, -1, -1) }, 500)
+      } else {
+        impact.material = blackMaterial
+      }
       impacts.push(impact)
     }
   }
@@ -150,6 +173,10 @@ async function init() {
   await loadRifle()
   addCrates()
   addImpacts()
+  creature = new Creature()
+  scene.add(creature)
+  creature.position.copy(new THREE.Vector3(0, 0, -10))
+
   vrRoom.camera.position.set(0, 1.6, 5)
   vrRoom.controllerDecorator = controllerDecorator
   vrRoom.player.position.set(0, 0, 3)
@@ -172,19 +199,22 @@ async function init() {
     vrRoom.controllerDecorator = null
     controller.add(rifle)
     rifle.position.set(0, 0, 0)
-    rifle.rotation.y = - vrRoom.halfPi * 0.05
-    rifle.rotation.x = - vrRoom.halfPi * 0.1
+    rifle.rotation.y = - halfPi * 0.05
+    rifle.rotation.x = - halfPi * 0.1
     if (controller.children.length > 0) {
       controller.children[0].visible = false
     }
   })
   vrRoom.onRender( (delta, frame) => {
+    creature.update(delta, frame)
+    moveCreature(delta, frame)
     for (const bullet of bullets) {
       moveBullet(delta, bullet)
     }
   })
   vrRoom.addMoveListener( delta => {
     const position = vrRoom.player.position.clone()
+    creature.userData.goal.copy(position)
     position.add(delta)
     for (const crate of crates) {
       const boundingBox = crate.userData.boundingBox

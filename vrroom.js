@@ -596,7 +596,7 @@ function raycastIntersect(origin, objects) {
   tempMatrix.identity().extractRotation(origin.matrixWorld)
   raycaster.ray.origin.setFromMatrixPosition(origin.matrixWorld)
   raycaster.ray.direction.set( 0, 0, - 1 ).applyMatrix4(tempMatrix)
-  return raycaster.intersectObjects(objects)
+  return raycaster.intersectObjects(objects, true)
 }
 
 function intersects(objects) {
