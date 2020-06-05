@@ -132,13 +132,59 @@ function makeBullet(controller) {
   return bullet
 }
 
+function mazeState(x, y, z) {
+  x = Math.round(x / 2 + 5)
+  z = Math.round(z / -2)
+  return maze[z]?.[x] || 0
+}
+
+function randomHead(items) {
+  const r = Math.exp(items.length)
+  const dr = r * Math.random()
+  const i = Math.floor(items.length - Math.log(dr))
+  return items[i]
+}
+
+function updateGoal() {
+  const playerPosition = vrRoom.player.position.clone()
+  const creaturePosition = creature.position.clone()
+
+  const goal = creature.userData.goal
+  const playerDistance = playerPosition.clone().sub(creature.position).length()
+  const candidates = []
+  for (const dz of [-1, 0, 1]) {
+    for (const dx of [-1, 0, 1]) {
+      const testGoal = goal.clone()
+      testGoal.x += dx
+      testGoal.z += dz
+      const crate = mazeState(...testGoal.toArray())
+      if (crate == 0) {
+        const d = playerPosition.clone().sub(testGoal).length()
+        const v =  testGoal
+        candidates.push({ d, v })
+      }
+    }
+  }
+  candidates.sort( (a,b) => a.d - b.d )
+  const best = randomHead(candidates)
+  if (!best) {
+    return
+  }
+  creature.userData.goal.copy(best.v)
+}
+
 function moveCreature(delta, frame) {
-  const { goal, speed } = creature.userData
+  let { goal, speed } = creature.userData
+  goal = goal.clone()
   const velocity = goal.clone()
   velocity.sub(creature.position)
   velocity.normalize()
   velocity.multiplyScalar(speed)
   creature.position.add(velocity)
+  const goalDistance = goal.sub(creature.position).length()
+  if (goalDistance < 0.01) {
+    updateGoal()
+  }
 }
 
 function moveBullet(delta, bullet) {
@@ -175,7 +221,8 @@ async function init() {
   addImpacts()
   creature = new Creature()
   scene.add(creature)
-  creature.position.copy(new THREE.Vector3(0, 0, -10))
+  creature.position.copy(new THREE.Vector3(-8, 0, -22))
+  creature.userData.goal.copy(new THREE.Vector3(-8, 0, -22))
 
   vrRoom.camera.position.set(0, 1.6, 5)
   vrRoom.controllerDecorator = controllerDecorator
@@ -224,6 +271,7 @@ async function init() {
     }
     return delta
   })
+  // vrRoom.lookDown()
 }
 
 init().then()

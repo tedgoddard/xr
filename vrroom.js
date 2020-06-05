@@ -744,7 +744,7 @@ export class VRRoom {
 
   lookDown = () => {
     this.player.rotation.x = -1.5
-    this.player.position.set(0, 30, -5)
+    this.player.position.set(0, 30, -2)
   }
 
 }
