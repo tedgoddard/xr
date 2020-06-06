@@ -64,17 +64,37 @@ function randomInt(max) {
   return Math.floor(max * Math.random())
 }
 
-function neighbors(maze, i, j) {
+function adjacents(maze, a, options = { }) {
+  const v = options.void || 0
+  const [i, j] = a
   const row = maze[j]
-  const urow = maze[j - 1]
-  const drow = maze[j + 1]
-  if (!urow || !drow) {
-    return null
+  const urow = maze[j - 1] || []
+  const drow = maze[j + 1] || []
+  const result = []
+  if (urow[i] == 0) {
+    result.push([i, j - 1])
   }
+  if (row[i - 1] == 0) {
+    result.push([i - 1, j])
+  }
+  if (row[i + 1] == 0) {
+    result.push([i + 1, j])
+  }
+  if (drow[i] == 0) {
+    result.push([i, j + 1])
+  }
+  return result
+}
+
+function neighbors(maze, i, j, options = { }) {
+  const v = options.void || 0
+  const row = maze[j]
+  const urow = maze[j - 1] || []
+  const drow = maze[j + 1] || []
   return [
-    [urow[i - 1], urow[i], urow[i + 1]],
-    [row[i - 1], row[i], row[i + 1]],
-    [drow[i - 1], drow[i], drow[i + 1]],
+    [urow[i - 1] || v, urow[i] || v, urow[i + 1] || v],
+    [row[i - 1] || v, row[i] || v, row[i + 1] || v],
+    [drow[i - 1] || v, drow[i] || v, drow[i + 1] || v],
   ]
 }
 
@@ -114,10 +134,9 @@ function deform(maze) {
   const height = maze.length
   const width = maze[0].length
   const deformations = []
-  for (let j = 0; j < height; j++) {
+  for (let j = 1; j < height - 1; j++) {
     const row = maze[j]
-    for (let i = 0; i < width; i++) {
-      // const cell = row[i]
+    for (let i = 1; i < width - 1; i++) {
       const deformation = safeDeform(maze, i, j)
       if (deformation) {
         deformations.push(deformation)
@@ -137,8 +156,8 @@ export function worm(width, height, options) {
   return maze
 }
 
-function dump(maze) {
-  const prettyCell = cell => cell == 0 ? "*" : " "
+export function dump(maze) {
+  const prettyCell = cell => cell == 0 ? " " : (cell == 1 ? "*" : cell)
   const prettyRow = row => row.map(prettyCell).join("")
   return maze.map(prettyRow).join("\n")
 }
@@ -176,7 +195,6 @@ function pipe(width, height, options) {
   return result
 }
 
-
 export function simple(width, height, density = 0.2) {
   const result = []
   for (let i = 0; i < height; i++) {
@@ -187,4 +205,35 @@ export function simple(width, height, density = 0.2) {
     result.push(row)
   }
   return result
+}
+
+function pathStep(maze, a, b, paths) {
+  for (const key in paths) {
+    const p = paths[key]
+    const [end] = p.slice(-1)
+    const open = adjacents(maze, end)
+    for (const n of open) {
+      const nKey = JSON.stringify(n)
+      const existing = paths[nKey]
+      if (!existing) {
+        const newPath = [...p, n]
+        paths[nKey] = newPath
+      }
+    }
+  }
+}
+
+export function path(maze, a, b, paths) {
+  if (!paths) {
+    paths = { }
+    paths[JSON.stringify(a)] = [a]
+  }
+  let morePaths = true
+  while (morePaths) {
+    const pathsBefore = Object.keys(paths).length
+    pathStep(maze, a, b, paths)
+    const pathsAfter = Object.keys(paths).length
+    morePaths = pathsBefore != pathsAfter
+  }
+  return paths[JSON.stringify(b)]
 }

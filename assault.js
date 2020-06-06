@@ -1,7 +1,7 @@
 import { VRRoom, logFlash } from "./vrroom.js"
 import * as THREE from './js/three.module.js';
 import { Object3D } from "./js/three.module.js"
-import { worm } from "./maze.js"
+import { worm, path, dump } from "./maze.js"
 import { Creature } from "./creature.js"
 
 const halfPi = Math.PI / 2
@@ -72,12 +72,14 @@ function makeCrate(x, y, z) {
 
 function addCrates() {
   maze = worm(10, 10, { steps: 8, style: "+" })
-  for (let y = 0; y < maze.length; y++) {
-    const row = maze[y]
-    for (let x = 0; x < row.length; x++) {
-      const cell = row[x]
+  maze.unshift([0,0,0,0,0,0,0,0,0,0,])
+  maze.push([0,0,0,0,0,0,0,0,0,0,])
+  for (let j = 0; j < maze.length; j++) {
+    const row = maze[j]
+    for (let i = 0; i < row.length; i++) {
+      const cell = row[i]
       if (cell) {
-        crates.push(makeCrate((x - 5) * 2, 1, y * -2))
+        crates.push(makeCrate((i - 5) * 2, 1, j * -2))
       }
     }
   }
@@ -132,10 +134,24 @@ function makeBullet(controller) {
   return bullet
 }
 
-function mazeState(x, y, z) {
-  x = Math.round(x / 2 + 5)
-  z = Math.round(z / -2)
-  return maze[z]?.[x] || 0
+function mazeState(maze, x, y, z) {
+  const [i, j] = mazeIndex(maze, x, y, z)
+  return maze[j]?.[i] || 0
+}
+
+function mazeIndex(maze, x, y, z) {
+  let i = Math.round(x / 2 + 5)
+  let j = Math.round(z / -2)
+  i = Math.min(i, maze[0].length)
+  j = Math.min(j, maze.length)
+  i = Math.max(i, 0)
+  j = Math.max(j, 0)
+  return [i, j]
+}
+
+function mazeVector(maze, a) {
+  const [i, j] = a
+  return new THREE.Vector3((i - 5) * 2, 1, j * -2)
 }
 
 function randomHead(items) {
@@ -149,28 +165,17 @@ function updateGoal() {
   const playerPosition = vrRoom.player.position.clone()
   const creaturePosition = creature.position.clone()
 
-  const goal = creature.userData.goal
-  const playerDistance = playerPosition.clone().sub(creature.position).length()
-  const candidates = []
-  for (const dz of [-1, 0, 1]) {
-    for (const dx of [-1, 0, 1]) {
-      const testGoal = goal.clone()
-      testGoal.x += dx
-      testGoal.z += dz
-      const crate = mazeState(...testGoal.toArray())
-      if (crate == 0) {
-        const d = playerPosition.clone().sub(testGoal).length()
-        const v =  testGoal
-        candidates.push({ d, v })
-      }
-    }
-  }
-  candidates.sort( (a,b) => a.d - b.d )
-  const best = randomHead(candidates)
-  if (!best) {
+  const playerIndex = mazeIndex(maze, ...playerPosition.toArray())
+  const creatureIndex = mazeIndex(maze, ...creaturePosition.toArray())
+  const p = path(maze, playerIndex, creatureIndex)
+  if (!p) {
+    console.log("no path")
     return
   }
-  creature.userData.goal.copy(best.v)
+
+  const [goal, end] = p.slice(-2)
+  creature.userData.goal.copy(mazeVector(maze, goal))
+  window.creature = creature
 }
 
 function moveCreature(delta, frame) {
@@ -222,11 +227,11 @@ async function init() {
   creature = new Creature()
   scene.add(creature)
   creature.position.copy(new THREE.Vector3(-8, 0, -22))
-  creature.userData.goal.copy(new THREE.Vector3(-8, 0, -22))
 
   vrRoom.camera.position.set(0, 1.6, 5)
   vrRoom.controllerDecorator = controllerDecorator
   vrRoom.player.position.set(0, 0, 3)
+  updateGoal()
   vrRoom.onSelect((time, controller) => {
     const now = Date.now()
     const lastPulse = rifleFire.lastPulse
@@ -261,7 +266,6 @@ async function init() {
   })
   vrRoom.addMoveListener( delta => {
     const position = vrRoom.player.position.clone()
-    creature.userData.goal.copy(position)
     position.add(delta)
     for (const crate of crates) {
       const boundingBox = crate.userData.boundingBox
