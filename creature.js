@@ -46,7 +46,7 @@ export class Creature extends THREE.Object3D {
     super()
 
     this.name = "creature"
-    const geometry = new THREE.SphereGeometry(2, 8, 8, 0, Math.PI * 2, 0, 1.5)
+    const geometry = new THREE.SphereGeometry(1, 8, 8, 0, Math.PI * 2, 0, 1.5)
     const material = new THREE.MeshPhongMaterial({ color: 0x006600 })
     material.shininess = 80
     const sphere = new THREE.Mesh(geometry, material)
@@ -56,7 +56,8 @@ export class Creature extends THREE.Object3D {
     this.tentacles = []
     for (let i = 0; i < 3; i++) {
       const tentacle = createTentacle()
-      tentacle.position.set(i - 1, 0.5, 0)
+      const y = Math.abs(i - 1) / -2 - 0.1
+      tentacle.position.set(i / 2 - 0.5, y, 0)
       this.add(tentacle)
       this.tentacles.push(tentacle)
     }
