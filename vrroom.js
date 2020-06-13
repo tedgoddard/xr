@@ -26,8 +26,8 @@ const textureLoader = new THREE.TextureLoader()
 const zeroVector = new THREE.Vector3()
 const halfPi = Math.PI / 2
 
-var container;
-var camera, scene, raycaster, renderer;
+let container
+let camera, scene, raycaster, renderer
 
 let room
 let knife
@@ -108,7 +108,7 @@ function init() {
   player = new THREE.Object3D()
   scene.add(player)
 
-  camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 50 );
+  camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.01, 50)
   camera.position.set( 0, 1.6, 3 );
   camera.add(audioListener)
   // scene.add( camera );
@@ -477,7 +477,7 @@ function render(time, frame) {
 
   for (const listener of renderListeners) {
     try {
-      listener(delta, frame)
+      listener(delta, frame, renderer)
     } catch (e) {
       console.error(e)
     }

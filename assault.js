@@ -15,6 +15,13 @@ const bullets = []
 const crates = []
 let creature = null
 let maze = null
+let sight = null
+let sightRTT = null
+let sightCamera = null
+const sightRenderer = new THREE.WebGLRenderer({ antialias: true })
+sightRenderer.setPixelRatio(1)
+sightRenderer.setSize(256, 256)
+const halfGravity = vrRoom.gravity.clone().multiplyScalar(0.5)
 
 const blackMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 })
 const redMaterial = new THREE.MeshBasicMaterial({ color: 0x660000 })
@@ -85,6 +92,23 @@ function addCrates() {
   }
 }
 
+function addSight() {
+  sightRTT = new THREE.WebGLRenderTarget(512, 512)
+  const sightMaterial = new THREE.MeshBasicMaterial({ map: sightRTT.texture })
+  const sightGeometry = new THREE.CircleGeometry( 0.03, 8 )
+  sight = new THREE.Mesh(sightGeometry, sightMaterial)
+  sight.position.z = -0.1
+  sight.position.y = 0.29
+  sight.rotation.x = -0.2
+  rifle.add(sight)
+  sightCamera = new THREE.PerspectiveCamera(2, 1, 1, 100)
+  sightCamera.position.y = 0.245
+  sightCamera.rotation.x = -0.314
+  rifle.add(sightCamera)
+  // const helper = new THREE.CameraHelper(sightCamera)
+  // scene.add(helper)
+}
+
 function makeImpact() {
   const geometry = new THREE.BoxGeometry(0.01, 0.01, 0.01)
   const material = new THREE.MeshBasicMaterial({ color: 0x000000 })
@@ -107,8 +131,8 @@ function controllerDecorator(time, controller) {
   if (controller.userData.name == "controller2") {
     return
   }
-  rifle.position.copy(controller.position)
-  rifle.rotation.copy(controller.rotation)
+  // rifle.position.copy(controller.position)
+  // rifle.rotation.copy(controller.rotation)
 }
 
 function makeBullet(controller) {
@@ -119,8 +143,8 @@ function makeBullet(controller) {
   bullet.position.copy(barrel.localToWorld(new THREE.Vector3()))
   const direction = new THREE.Vector3()
   barrel.getWorldDirection(direction)
-  // const velocity = direction.multiplyScalar(0.03)
-  const velocity = direction.multiplyScalar(0.005)
+  const velocity = direction.multiplyScalar(0.03)
+  // const velocity = direction.multiplyScalar(0.001)
   bullet.userData.velocity = velocity
   scene.add(bullet)
   const rotationMatrix = new THREE.Matrix4()
@@ -194,7 +218,7 @@ function moveCreature(delta, frame) {
 
 function moveBullet(delta, bullet) {
   let bulletVelocity = bullet.userData.velocity
-  bulletVelocity.add(vrRoom.gravity)
+  bulletVelocity.add(halfGravity)
   bulletVelocity = bulletVelocity.clone()
   bulletVelocity.multiplyScalar(delta * 4)
   const collisions = vrRoom.raycastIntersect(bullet, [...crates, creature])
@@ -224,6 +248,7 @@ async function init() {
   await loadRifle()
   addCrates()
   addImpacts()
+  addSight()
   creature = new Creature()
   scene.add(creature)
   creature.position.copy(new THREE.Vector3(-8, 0, -22))
@@ -257,12 +282,22 @@ async function init() {
       controller.children[0].visible = false
     }
   })
-  vrRoom.onRender( (delta, frame) => {
+  vrRoom.onRender( (delta, frame, renderer) => {
     creature.update(delta, frame)
     moveCreature(delta, frame)
     for (const bullet of bullets) {
       moveBullet(delta, bullet)
     }
+    renderer.setRenderTarget(sightRTT)
+    renderer.xr.enabled = false
+    sight.visible = false
+    rifle.visible = false
+    renderer.render(scene, sightCamera)
+    sight.visible = true
+    rifle.visible = true
+    renderer.setRenderTarget(null)
+    renderer.xr.enabled = true
+
   })
   vrRoom.addMoveListener( delta => {
     const position = vrRoom.player.position.clone()
