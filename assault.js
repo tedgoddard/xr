@@ -16,6 +16,8 @@ const crates = []
 let creature = null
 let maze = null
 let sight = null
+let sightOffset = new THREE.Vector3()
+let sightScale = 1
 let sightRTT = null
 let sightCamera = null
 const sightRenderer = new THREE.WebGLRenderer({ antialias: true })
@@ -40,23 +42,52 @@ async function loadFloor() {
   }
 }
 
+async function loadSCAR(rifle, barrel) {
+  const rifleModel = await vrRoom.loadModel("models/scar.glb")
+  rifleModel.rotation.y = halfPi
+  rifleModel.rotation.x = - halfPi * 0.2
+  rifleModel.position.y = 0.11
+  rifleModel.position.z = 0.019
+  rifleModel.scale.set(0.5, 0.5, 0.5)
+  sightOffset.y = 0.1368
+  sightOffset.z = -0.056
+  sightScale = new THREE.Vector3(0.5, 0.5, 0.5)
+  barrel.position.y = -0.1
+  vrRoom.sounds.ar15n.forEach( sound => rifle.add(sound) )
+  rifle.userData.sounds = vrRoom.sounds.ar15n
+  return rifleModel
+}
+
+async function loadVintorez(rifle, barrel) {
+  const rifleModel = await vrRoom.loadModel("models/vss-vintorez.glb")
+  rifleModel.rotation.y = halfPi
+  rifleModel.rotation.x = - halfPi * 0.2
+  rifleModel.position.y = -0.0819
+  rifleModel.position.z = -0.12
+  rifleModel.scale.set(0.1, 0.1, 0.1)
+  sightOffset.y = 0.1368
+  sightOffset.x = -0.0039
+  sightOffset.z = 0.08
+  sightScale = new THREE.Vector3(0.55, 0.55, 0.55)
+  barrel.position.y = 0.8
+  vrRoom.sounds.vintorez.forEach( sound => rifle.add(sound) )
+  rifle.userData.sounds = vrRoom.sounds.vintorez
+  return rifleModel
+}
+
 async function loadRifle() {
   rifle = new Object3D()
   const barrel = new Object3D()
-  const rifleModel = await vrRoom.loadModel("models/scar.glb")
-  rifle.add(rifleModel)
+  // const rifleModel = await loadSCAR(barrel)
+  const rifleModel = await loadVintorez(rifle, barrel)
   rifleModel.add(barrel)
-  vrRoom.sounds.ar15n.forEach( sound => rifle.add(sound) )
-  rifleModel.rotation.y = halfPi
-  rifleModel.rotation.x = - halfPi * 0.2
   barrel.rotation.copy(rifleModel.rotation)
-  barrel.position.y = -0.1
-  rifleModel.position.y = 0.24
-  rifleModel.position.z = 0.05
+
   // console.log(rifle)
+  rifle.add(rifleModel)
   scene.add(rifle)
   rifle.position.set(0, 2, 0)
-  rifle.scale.set(0.5, 0.5, 0.5)
+  // rifle.scale.set(0.5, 0.5, 0.5)
   rifle.userData.barrel = barrel
 }
 
@@ -97,13 +128,16 @@ function addSight() {
   const sightMaterial = new THREE.MeshBasicMaterial({ map: sightRTT.texture })
   const sightGeometry = new THREE.CircleGeometry( 0.03, 8 )
   sight = new THREE.Mesh(sightGeometry, sightMaterial)
-  sight.position.z = -0.1
-  sight.position.y = 0.29
-  sight.rotation.x = -0.2
+  // sight.position.z = -0.1
+  // sight.position.y = 0.29
+  sight.position.copy(sightOffset)
+  sight.rotation.x = -Math.PI * 0.1
+  sight.scale.copy(sightScale)
   rifle.add(sight)
   sightCamera = new THREE.PerspectiveCamera(2, 1, 1, 100)
-  sightCamera.position.y = 0.245
-  sightCamera.rotation.x = -0.314
+  // sightCamera.position.y = 0.245
+  sightCamera.rotation.x = -Math.PI * 0.1
+  sightCamera.position.copy(sightOffset)
   rifle.add(sightCamera)
   // const helper = new THREE.CameraHelper(sightCamera)
   // scene.add(helper)
@@ -143,8 +177,8 @@ function makeBullet(controller) {
   bullet.position.copy(barrel.localToWorld(new THREE.Vector3()))
   const direction = new THREE.Vector3()
   barrel.getWorldDirection(direction)
-  const velocity = direction.multiplyScalar(0.03)
-  // const velocity = direction.multiplyScalar(0.001)
+  // const velocity = direction.multiplyScalar(0.03)
+  const velocity = direction.multiplyScalar(0.001)
   bullet.userData.velocity = velocity
   scene.add(bullet)
   const rotationMatrix = new THREE.Matrix4()
@@ -152,9 +186,9 @@ function makeBullet(controller) {
   const up = new THREE.Vector3(0, 1, 0)
   rotationMatrix.lookAt(eye, direction, up)
   bullet.rotation.setFromRotationMatrix(rotationMatrix)
-  const sound = vrRoom.sounds.ar15n.shift()
+  const sound = rifle.userData.sounds.shift()
   vrRoom.playSound(sound)
-  vrRoom.sounds.ar15n.push(sound)
+  rifle.userData.sounds.push(sound)
   return bullet
 }
 
@@ -218,7 +252,7 @@ function moveCreature(delta, frame) {
 
 function moveBullet(delta, bullet) {
   let bulletVelocity = bullet.userData.velocity
-  bulletVelocity.add(halfGravity)
+  // bulletVelocity.add(halfGravity)
   bulletVelocity = bulletVelocity.clone()
   bulletVelocity.multiplyScalar(delta * 4)
   const collisions = vrRoom.raycastIntersect(bullet, [...crates, creature])

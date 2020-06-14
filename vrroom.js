@@ -18,8 +18,12 @@ const audioLoader = new THREE.AudioLoader()
 const thump = new THREE.PositionalAudio(audioListener)
 const scuff = new THREE.PositionalAudio(audioListener)
 const ar15n = [0, 1, 2, 3, 4]
+const vintorez = [0, 1, 2, 3, 4]
 for (let i in ar15n) {
   ar15n[i] = new THREE.PositionalAudio(audioListener)
+}
+for (let i in vintorez) {
+  vintorez[i] = new THREE.PositionalAudio(audioListener)
 }
 const textureLoader = new THREE.TextureLoader()
 
@@ -124,6 +128,12 @@ function init() {
   })
   audioLoader.load( 'sounds/ar15-near.ogg', buffer => {
     ar15n.forEach( sound => {
+      sound.setBuffer(buffer)
+      sound.setRefDistance(20)
+    })
+  })
+  audioLoader.load( 'sounds/vintorez.ogg', buffer => {
+    vintorez.forEach( sound => {
       sound.setBuffer(buffer)
       sound.setRefDistance(20)
     })
@@ -244,6 +254,7 @@ function init() {
       thump.context.resume()
       scuff.context.resume()
       ar15n.forEach( sound => sound.context.resume() )
+      vintorez.forEach( sound => sound.context.resume() )
     }
   }
   document.body.appendChild( VRButton.createButton( renderer, buttonOptions ) );
@@ -647,7 +658,7 @@ export class VRRoom {
     this.raycastIntersect = raycastIntersect
     this.intersects = intersects
     this.hapticPulse = hapticPulse
-    this.sounds = { thump, scuff, ar15n}
+    this.sounds = { thump, scuff, ar15n, vintorez}
   }
 
   set controllerDecorator(callback) {
