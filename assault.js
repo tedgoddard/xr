@@ -3,6 +3,7 @@ import * as THREE from './js/three.module.js';
 import { Object3D } from "./js/three.module.js"
 import { worm, path, dump } from "./maze.js"
 import { Creature } from "./creature.js"
+import { TypedArrayUtils } from './jsm/utils/TypedArrayUtils.js'
 
 const halfPi = Math.PI / 2
 const vrRoom = new VRRoom()
@@ -13,6 +14,7 @@ let impacts = []
 const rifleFire = { }
 const bullets = []
 const crates = []
+let crateTree = null
 let creature = null
 let maze = null
 let sight = null
@@ -20,6 +22,8 @@ let sightOffset = new THREE.Vector3()
 let sightScale = 1
 let sightRTT = null
 let sightCamera = null
+let gripper = null
+
 const sightRenderer = new THREE.WebGLRenderer({ antialias: true })
 sightRenderer.setPixelRatio(1)
 sightRenderer.setSize(256, 256)
@@ -27,6 +31,9 @@ const halfGravity = vrRoom.gravity.clone().multiplyScalar(0.5)
 
 const blackMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 })
 const redMaterial = new THREE.MeshBasicMaterial({ color: 0x660000 })
+const greenMaterial = new THREE.MeshBasicMaterial({ color: 0x006600 })
+const blueMaterial = new THREE.MeshBasicMaterial({ color: 0x000066 })
+const yellowMaterial = new THREE.MeshBasicMaterial({ color: 0xFFFF00 })
 
 async function loadFloor() {
   const mesh = await vrRoom.loadTexturePanel("images/concrete.jpg")
@@ -108,19 +115,51 @@ function makeCrate(x, y, z) {
   return cube
 }
 
+function sq(a) {
+  return Math.pow(a, 2)
+}
+
+function hasPosition(object, coords) {
+  const position = object.position
+  return position.x == coords[0] && position.y == coords[1] && position.z == coords[2]
+}
+
+const displacement = function (a, b) {
+  return sq(a[0] - b[0]) + sq(a[1] - b[1]) + sq(a[2] - b[2])
+}
+
 function addCrates() {
-  maze = worm(10, 10, { steps: 8, style: "+" })
+  const width = 10
+  const height = 10
+  maze = worm(width, height, { steps: 8, style: "+" })
   maze.unshift([0,0,0,0,0,0,0,0,0,0,])
   maze.push([0,0,0,0,0,0,0,0,0,0,])
+  console.log("lentght", maze.length)
+  const crateCoords = []
+  const unsortedCrates = []
   for (let j = 0; j < maze.length; j++) {
     const row = maze[j]
     for (let i = 0; i < row.length; i++) {
       const cell = row[i]
       if (cell) {
-        crates.push(makeCrate((i - 5) * 2, 1, j * -2))
+        const crate = makeCrate((i - 5) * 2, 1, j * -2)
+        unsortedCrates.push(crate)
+        crateCoords.push(...crate.position.toArray())
       }
     }
   }
+  const crateCoordsFloat32 = Float32Array.from(crateCoords)
+  crateTree = new TypedArrayUtils.Kdtree(crateCoordsFloat32, displacement, 3)
+  for (let i = 0; i < crateCoordsFloat32.length; i += 3) {
+    const crateCoord = crateCoordsFloat32.slice(i, i + 3)
+    const crate = unsortedCrates.find(crate => hasPosition(crate, crateCoord))
+    crates.push(crate)
+  }
+
+  const geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1)
+  const material = new THREE.MeshBasicMaterial({ color: 0xff0000 })
+  gripper = new THREE.Mesh(geometry, material)
+  scene.add(gripper)
 }
 
 function addSight() {
@@ -263,7 +302,7 @@ function moveBullet(delta, bullet) {
       impact.position.copy(collision.point)
       if (collision.object.parent.name == "creature") {
         impact.material = redMaterial
-        setTimeout( () => { impact.position.set(-1, -1, -1) }, 500)
+        setTimeout( () => { impact.position.set(-1, -1, -1) }, 1000)
       } else {
         impact.material = blackMaterial
       }
@@ -291,6 +330,7 @@ async function init() {
   vrRoom.controllerDecorator = controllerDecorator
   vrRoom.player.position.set(0, 0, 3)
   updateGoal()
+
   vrRoom.onSelect((time, controller) => {
     const now = Date.now()
     const lastPulse = rifleFire.lastPulse
@@ -306,6 +346,7 @@ async function init() {
       scene.remove(discard)
     }
   })
+
   vrRoom.onSqueeze((time, controller) => {
     vrRoom.controllerDecorator = null
     controller.add(rifle)
@@ -315,7 +356,21 @@ async function init() {
     if (controller.children.length > 0) {
       controller.children[0].visible = false
     }
+
+    gripper.userData.gripStart = gripper.userData.gripStart || {
+      gripperStart: gripper.position.clone(),
+      controllerStart: controller.position.clone(),
+      playerStart: vrRoom.player.position.clone(),
+      controller
+    }
+    gripper.material = greenMaterial
   })
+
+  vrRoom.onSqueezeEnd((time, controller) => {
+    gripper.material = blueMaterial
+    gripper.userData.gripStart = null
+  })
+
   vrRoom.onRender( (delta, frame, renderer) => {
     creature.update(delta, frame)
     moveCreature(delta, frame)
@@ -332,7 +387,34 @@ async function init() {
     renderer.setRenderTarget(null)
     renderer.xr.enabled = true
 
+    const playerPosition = vrRoom.player.position.toArray()
+    const maxDistance = 10
+    const count = 10
+    const nearCrates = crateTree.nearest(playerPosition, count, maxDistance)
+    for (const hit of nearCrates) {
+      const pos = hit[0].pos
+      const crate = crates[pos]
+      if (!crate) {
+        continue
+      }
+      const collisions = vrRoom.raycastIntersect(vrRoom.controller1, [crate])
+      if (collisions.length > 0) {
+        const collision = collisions[0]
+        gripper.position.copy(collision.point)
+      }
+    }
+
+    const gripStart = gripper.userData.gripStart
+    if (gripStart) {
+      const { playerStart, controllerStart, controller } = gripStart
+      const controllerNow = controller.position.clone()
+      const playerMoved = playerStart.clone()
+      playerMoved.sub(controllerNow.sub(controllerStart))
+      vrRoom.player.position.copy(playerMoved)
+      gripper.material = yellowMaterial
+    }
   })
+
   vrRoom.addMoveListener( delta => {
     const position = vrRoom.player.position.clone()
     position.add(delta)
@@ -344,6 +426,7 @@ async function init() {
     }
     return delta
   })
+
   // vrRoom.lookDown()
 }
 

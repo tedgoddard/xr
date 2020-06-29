@@ -5,6 +5,7 @@ import { XRControllerModelFactory } from './jsm/webxr/XRControllerModelFactory.j
 import { GLTFLoader } from './jsm/loaders/GLTFLoader.js'
 import { OBJLoader } from './jsm/loaders/OBJLoader.js'
 import { MTLLoader } from './jsm/loaders/MTLLoader.js'
+
 // import WebXRPolyfill from './jsm/webxr-polyfill.module.js'
 
 // if (!navigator.xr) {
@@ -51,7 +52,7 @@ const knifeBladeColor = 0xFF0000
 const knifeHandleColor = 0xFF0000
 //			var controller, tempMatrix = new THREE.Matrix4();
 var tempMatrix = new THREE.Matrix4();
-var controller1, controller2;
+let controller1, controller2
 var controllerGrip1, controllerGrip2;
 // let lastRender = "_"
 const gravity = new THREE.Vector3(0, -0.00009, 0)
@@ -66,6 +67,7 @@ let intersectList = []
 let controllerDecorator = null
 const selectListeners = []
 const squeezeListeners = []
+const squeezeEndListeners = []
 const renderListeners = []
 let moveListener = delta => delta
 
@@ -94,8 +96,11 @@ function addController(scene, controller) {
   controller.addEventListener('disconnected', event => {
     controller.remove(controller.children[0])
   })
-  controller.addEventListener('squeeze', event => {
+  controller.addEventListener('squeezestart', event => {
     controller.userData.squeezeEvent = event
+  })
+  controller.addEventListener('squeezeend', event => {
+    controller.userData.squeezeEndEvent = event
   })
   // scene.add(controller)
   player.add(controller)
@@ -382,6 +387,17 @@ function handleController(time, controller) {
       // knife.position.add( knife.userData.velocity );
     }
   }
+  if (controller.userData.squeezeEndEvent) {
+    controller.userData.squeezeEvent = null
+    for (const listener of squeezeEndListeners) {
+      try {
+        listener(time, controller)
+      } catch (e) {
+        console.error(e)
+      }
+    }
+    controller.userData.squeezeEndEvent = null
+  }
   if ( controller.userData.isSelecting ) {
     for (const listener of selectListeners) {
       try {
@@ -665,6 +681,14 @@ export class VRRoom {
     controllerDecorator = callback
   }
 
+  get controller1() {
+    return controller1
+  }
+
+  get controller2() {
+    return controller2
+  }
+
   async loadTexturePanel(image) {
     const texture = await textureLoader.load(image)
       texture.format = THREE.RGBAFormat
@@ -727,6 +751,10 @@ export class VRRoom {
 
   onSqueeze(callback) {
     squeezeListeners.push(callback)
+  }
+
+  onSqueezeEnd(callback) {
+    squeezeEndListeners.push(callback)
   }
 
   onRender(callback) {
