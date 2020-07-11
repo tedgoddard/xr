@@ -6,6 +6,11 @@ Adventures in Reality
 
 [VR Entrypoint](vrlobby.html): A virtual lobby for selecting the different adventures
 
+### HYG VR
+
+[HYG VR](hygvr.html): Nearby stars from the [HYG Database](http://www.astronexus.com/hyg) with brightness, 3D position, and labels for a few named stars
+
+
 ### Assault Rifle
 
 [Assault Rifle VR](assault.html): A VR Assault Rifle
