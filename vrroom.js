@@ -58,8 +58,8 @@ var controllerGrip1, controllerGrip2;
 const gravity = new THREE.Vector3(0, -0.00009, 0)
 // const gravity = new THREE.Vector3(0, 0, 0)
 
-init()
-animate()
+// init()
+// animate()
 
 let crazyGlobalCallback = null
 let renderPointerCallback = null
@@ -106,18 +106,20 @@ function addController(scene, controller) {
   player.add(controller)
 }
 
-function init() {
+function init(options = {}) {
 
   container = document.createElement( 'div' );
   document.body.appendChild( container );
 
   scene = new THREE.Scene();
-  scene.background = new THREE.Color( 0x505050 );
-
+  if (!options.disableBackground) {
+    scene.background = new THREE.Color( 0x505050 );
+  }
   player = new THREE.Object3D()
   scene.add(player)
 
-  camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.01, 50)
+  const cameraOptions = options.camera || { fov: 50, near: 0.01, far: 50 }
+  camera = new THREE.PerspectiveCamera(cameraOptions.fov, window.innerWidth / window.innerHeight, cameraOptions.near, cameraOptions.far)
   camera.position.set( 0, 1.6, 3 );
   camera.add(audioListener)
   // scene.add( camera );
@@ -144,12 +146,13 @@ function init() {
     })
   })
 
-  room = new THREE.LineSegments(
-    new BoxLineGeometry( 6, 6, 20, 10, 10, 10 ).translate( 0, 3, 0 ),
-    new THREE.LineBasicMaterial( { color: 0x808080 } )
-  );
-  scene.add( room );
-
+  if (!options.disableGrid) {
+    room = new THREE.LineSegments(
+      new BoxLineGeometry(6, 6, 20, 10, 10, 10).translate(0, 3, 0),
+      new THREE.LineBasicMaterial({ color: 0x808080 })
+    )
+    scene.add(room)
+  }
   scene.add( new THREE.HemisphereLight( 0x606060, 0x404040 ) );
   scene.add(new THREE.AmbientLight(0x202020))
 
@@ -333,6 +336,8 @@ function handleController(time, controller) {
       const strafeDelta = strafeDirection.multiplyScalar(values.xAxis / 10)
       delta.add(strafeDelta)
       player.position.add(moveListener(delta))
+// delta = new THREE.Vector3(0, -0.00009, 0)
+player.position.add(moveListener(gravity))
     } else if (hand == "right") {
       player.rotation.y += - values.xAxis / 10
     }
@@ -514,7 +519,7 @@ function render(time, frame) {
 
 }
 
-function makeLabelCanvas(size, text) {
+function makeLabelCanvas(size, text, options = { }) {
   const lines = text.split("\n")
   const borderSize = 2;
   const ctx = document.createElement('canvas').getContext('2d');
@@ -535,7 +540,7 @@ function makeLabelCanvas(size, text) {
   ctx.font = font;
   ctx.textBaseline = 'top';
 
-  ctx.fillStyle = 'rosybrown';
+  ctx.fillStyle = options.background || 'tan'
   ctx.fillRect(0, 0, width, height);
   ctx.fillStyle = 'white';
   for (let i = 0; i < lines.length; i++) {
@@ -547,29 +552,34 @@ function makeLabelCanvas(size, text) {
   return ctx.canvas;
 }
 
-function makeLabel(size, position, text) {
-  const canvas = makeLabelCanvas(size, text);
-  const texture = new THREE.CanvasTexture(canvas);
+function makeLabel(size, position, text, options = { }) {
+  const canvas = makeLabelCanvas(size, text, options)
+  const texture = new THREE.CanvasTexture(canvas)
   // because our canvas is likely not a power of 2
   // in both dimensions set the filtering appropriately.
-  texture.minFilter = THREE.LinearFilter;
-  texture.wrapS = THREE.ClampToEdgeWrapping;
-  texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.minFilter = THREE.LinearFilter
+  texture.wrapS = THREE.ClampToEdgeWrapping
+  texture.wrapT = THREE.ClampToEdgeWrapping
 
-  const labelMaterial = new THREE.MeshBasicMaterial({
-    map: texture,
-    side: THREE.DoubleSide,
-    transparent: true,
-  });
-  const labelGeometry = new THREE.PlaneBufferGeometry(1, 1);
-  const label = new THREE.Mesh(labelGeometry, labelMaterial);
-  label.position.x = position.x;
-  label.position.y = position.y;
-  label.position.z = position.z;
+  // const labelMaterial = new THREE.MeshBasicMaterial({
+  //   map: texture,
+  //   side: THREE.DoubleSide,
+  //   transparent: true,
+  // })
 
-  const labelBaseScale = 0.001;
-  label.scale.x = canvas.width  * labelBaseScale;
-  label.scale.y = canvas.height * labelBaseScale;
+
+  const labelMaterial = new THREE.SpriteMaterial({ map: texture })
+  const label = new THREE.Sprite(labelMaterial)
+
+  // const labelGeometry = new THREE.PlaneBufferGeometry(1, 1);
+  // const label = new THREE.Mesh(labelGeometry, labelMaterial);
+  label.position.x = position.x
+  label.position.y = position.y
+  label.position.z = position.z
+
+  const labelBaseScale = 0.001
+  label.scale.x = canvas.width  * labelBaseScale
+  label.scale.y = canvas.height * labelBaseScale
   return label
 }
 
@@ -664,7 +674,9 @@ function hapticPulse(controller, intensity, duration) {
 }
 
 export class VRRoom {
-  constructor() {
+  constructor(options) {
+    init(options)
+    animate()
     this.scene = scene
     this.camera = camera
     this.player = player
@@ -674,7 +686,8 @@ export class VRRoom {
     this.raycastIntersect = raycastIntersect
     this.intersects = intersects
     this.hapticPulse = hapticPulse
-    this.sounds = { thump, scuff, ar15n, vintorez}
+    this.makeLabel = makeLabel
+    this.sounds = { thump, scuff, ar15n, vintorez }
   }
 
   set controllerDecorator(callback) {
@@ -784,6 +797,13 @@ export class VRRoom {
   lookDown() {
     this.player.rotation.x = -1.5
     this.player.position.set(0, 30, -2)
+  }
+  lookAround() {
+    const player = this.player
+    setInterval(() => {
+      console.log("around")
+      player.rotation.y += 0.001
+    }, 10)
   }
 
 }
