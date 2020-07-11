@@ -58,9 +58,6 @@ var controllerGrip1, controllerGrip2;
 const gravity = new THREE.Vector3(0, -0.00009, 0)
 // const gravity = new THREE.Vector3(0, 0, 0)
 
-// init()
-// animate()
-
 let crazyGlobalCallback = null
 let renderPointerCallback = null
 let intersectList = []
