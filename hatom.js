@@ -13,9 +13,19 @@ const polar = new THREE.Spherical()
 const a_0 = 1
 const root_pi_a_0 = Math.sqrt(Math.PI) * (a_0 ** (3/2))
 
-function psi(r, theta, phi) {
+function psi_2s_0(r, theta, phi) {
   return (1 / (4 * Math.sqrt(2) * root_pi_a_0)) * (2 - r / a_0) * Math.exp(-r / (2 * a_0))
 }
+
+function psi_3d_2(r, theta, phi) {
+  return (1 / (162 * root_pi_a_0)) * (r * r / a_0 * a_0) * Math.exp(-r / (3 * a_0)) * (Math.sin(theta * Math.exp(i * 2 * phi)) ** 2)
+}
+
+function psi_3d_0(r, theta, phi) {
+  return (1 / (81 * Math.sqrt(6) * root_pi_a_0)) * (r * r / a_0 * a_0) * Math.exp(-r / (3 * a_0)) * (3 * (Math.cos(theta) ** 2) - 1)
+}
+
+const psi = psi_3d_0
 
 window.vrRoom = vrRoom
 const spectra = {
@@ -46,19 +56,25 @@ function fixPosition(point) {
   return v.toArray()
 }
 
+function randInt(width) {
+  // return Math.random() * 4 - 2
+  return Math.random() * width - width / 2
+}
+
 function partitionPoints(allPoints) {
   const size = 0.1
   const color = 0xADB1E8
   const material = { color }
   const points = []
-  for (let i = 0; i < 10000; i++) {
-    const point = [Math.random() * 4 - 2, Math.random() * 4 - 2, Math.random() * 4 - 2]
-console.log(point)
+  const width = 10
+  for (let i = 0; i < 50000; i++) {
+    const point = [randInt(width), randInt(width), randInt(width)]
+// console.log(point)
     polar.setFromCartesianCoords(...point)
     polar.radius *= a_0
     const amplitude = psi(polar.radius, polar.theta, polar.phi)
-    console.log(polar.clone().radius, amplitude)
-    if (amplitude > 0.1) {
+  // console.log(polar.clone().radius, amplitude)
+    if (amplitude > 0.01) {
       points.push(point)
     }
   }
@@ -114,6 +130,8 @@ async function init() {
   await loadFloor()
   addElectronCloud()
 
+// vrRoom.player.position.set(0, -1, 4)
+// vrRoom.lookAround()
 }
 
 init().then()
