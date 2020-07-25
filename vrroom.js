@@ -798,7 +798,6 @@ export class VRRoom {
   lookAround() {
     const player = this.player
     setInterval(() => {
-      console.log("around")
       player.rotation.y += 0.001
     }, 10)
   }
