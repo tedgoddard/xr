@@ -5,6 +5,7 @@ import { XRControllerModelFactory } from './jsm/webxr/XRControllerModelFactory.j
 import { GLTFLoader } from './jsm/loaders/GLTFLoader.js'
 import { OBJLoader } from './jsm/loaders/OBJLoader.js'
 import { MTLLoader } from './jsm/loaders/MTLLoader.js'
+import { OrbitControls } from './jsm/controls/OrbitControls.js'
 
 // import WebXRPolyfill from './jsm/webxr-polyfill.module.js'
 
@@ -32,7 +33,7 @@ const zeroVector = new THREE.Vector3()
 const halfPi = Math.PI / 2
 
 let container
-let camera, scene, raycaster, renderer
+let camera, scene, raycaster, renderer, controls
 
 let room
 let knife
@@ -103,6 +104,14 @@ function addController(scene, controller) {
   player.add(controller)
 }
 
+function setupControls(camera, renderer) {
+  controls = new OrbitControls(camera, renderer.domElement)
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.05;
+  controls.screenSpacePanning = false;
+  controls.maxPolarAngle = Math.PI / 2;
+}
+
 function init(options = {}) {
 
   container = document.createElement( 'div' );
@@ -117,7 +126,7 @@ function init(options = {}) {
 
   const cameraOptions = options.camera || { fov: 50, near: 0.01, far: 50 }
   camera = new THREE.PerspectiveCamera(cameraOptions.fov, window.innerWidth / window.innerHeight, cameraOptions.near, cameraOptions.far)
-  camera.position.set( 0, 1.6, 3 );
+  camera.position.set(0, 1.6, 3)
   camera.add(audioListener)
   // scene.add( camera );
   player.add(camera)
@@ -213,7 +222,8 @@ function init(options = {}) {
   renderer.setSize( window.innerWidth, window.innerHeight );
   renderer.xr.enabled = true;
   container.appendChild( renderer.domElement );
-  
+  setupControls(camera, renderer)
+
   //controller models
   controller1 = renderer.xr.getController(0)
   controller2 = renderer.xr.getController(1)
