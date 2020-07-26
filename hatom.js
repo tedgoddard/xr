@@ -12,10 +12,20 @@ const polar = new THREE.Spherical()
 // const a_0 = 5.291772109E-11
 const a_0 = 1
 const root_pi_a_0 = Math.sqrt(Math.PI) * (a_0 ** (3/2))
+let threshold = 0.03
+let width = 10
 
 function psi_2s_0(r, theta, phi) {
   return (1 / (4 * Math.sqrt(2) * root_pi_a_0)) * (2 - r / a_0) * Math.exp(-r / (2 * a_0))
 }
+threshold = 0.0005
+width = 12
+
+function psi_2p_0(r, theta, phi) {
+  return (1 / (4 * Math.sqrt(2) * root_pi_a_0)) * (r / a_0) * Math.exp(-r / (2 * a_0)) * Math.cos(theta)
+}
+threshold = 0.003
+width = 9
 
 function psi_3d_2(r, theta, phi) {
   return (1 / (162 * root_pi_a_0)) * (r * r / a_0 * a_0) * Math.exp(-r / (3 * a_0)) * (Math.sin(theta * Math.exp(i * 2 * phi)) ** 2)
@@ -24,8 +34,9 @@ function psi_3d_2(r, theta, phi) {
 function psi_3d_0(r, theta, phi) {
   return (1 / (81 * Math.sqrt(6) * root_pi_a_0)) * (r * r / a_0 * a_0) * Math.exp(-r / (3 * a_0)) * (3 * (Math.cos(theta) ** 2) - 1)
 }
+// threshold = 0.01
 
-const psi = psi_3d_0
+const psi = psi_2p_0
 
 window.vrRoom = vrRoom
 const spectra = {
@@ -66,15 +77,15 @@ function partitionPoints(allPoints) {
   const color = 0xADB1E8
   const material = { color }
   const points = []
-  const width = 10
   for (let i = 0; i < 50000; i++) {
     const point = [randInt(width), randInt(width), randInt(width)]
+    // const point = [randInt(width), -Math.abs(randInt(width)), randInt(width)]
 // console.log(point)
     polar.setFromCartesianCoords(...point)
     polar.radius *= a_0
-    const amplitude = psi(polar.radius, polar.theta, polar.phi)
+    const amplitude = (psi(polar.radius, polar.theta, polar.phi))**2
   // console.log(polar.clone().radius, amplitude)
-    if (amplitude > 0.01) {
+    if (amplitude > threshold) {
       points.push(point)
     }
   }
