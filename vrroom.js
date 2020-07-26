@@ -109,7 +109,6 @@ function setupControls(camera, renderer) {
   controls.enableDamping = true;
   controls.dampingFactor = 0.05;
   controls.screenSpacePanning = false;
-  controls.maxPolarAngle = Math.PI / 2;
 }
 
 function init(options = {}) {
