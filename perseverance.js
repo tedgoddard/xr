@@ -25,7 +25,7 @@ async function loadRover() {
 }
 
 async function loadRoverModel() {
-  const roverModel = await vrRoom.loadModel("models/perseverance.glb")
+  const roverModel = await vrRoom.loadModel("models/Perseverance.glb")
   roverModel.position.y = -2
   return roverModel
 }
