@@ -3,6 +3,8 @@ const https = require('https')
 const fs = require('fs')
 const express = require('express')
 
+// openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -nodes -days 365
+
 const app = express()
 const sport = 4443
 const port = 8000
