@@ -1,6 +1,6 @@
 import * as THREE from './js/three.module.js';
 import { BoxLineGeometry } from './jsm/BoxLineGeometry.js';
-import { VRButton } from './jsm/VRButton.js';
+import { VRButton } from './jsm/webxr/VRButton.js';
 import { XRControllerModelFactory } from './jsm/webxr/XRControllerModelFactory.js';
 import { GLTFLoader } from './jsm/loaders/GLTFLoader.js'
 import { OBJLoader } from './jsm/loaders/OBJLoader.js'
@@ -67,6 +67,7 @@ const selectListeners = []
 const squeezeListeners = []
 const squeezeEndListeners = []
 const renderListeners = []
+const sessionCallbackListeners = []
 let moveListener = delta => delta
 
 function addController(scene, controller) {
@@ -219,7 +220,13 @@ function init(options = {}) {
   renderer = new THREE.WebGLRenderer( { antialias: true } );
   renderer.setPixelRatio( window.devicePixelRatio );
   renderer.setSize( window.innerWidth, window.innerHeight );
-  renderer.xr.enabled = true;
+  renderer.xr.enabled = true
+  // renderer.xr.onSessionStartedCallback = (session) => {
+  //   for (const listener of sessionCallbackListeners) {
+  //     listener(session)
+  //   }
+  // }
+
   container.appendChild( renderer.domElement );
   setupControls(camera, renderer)
 
@@ -263,14 +270,18 @@ function init(options = {}) {
   window.addEventListener( 'resize', onWindowResize, false );
 
   const buttonOptions = {
-    onclick: () => {
+    onSessionStarted: (session) => {
       console.log("click")
       thump.context.resume()
       scuff.context.resume()
       ar15n.forEach( sound => sound.context.resume() )
       vintorez.forEach( sound => sound.context.resume() )
+      for (const listener of sessionCallbackListeners) {
+        listener(session)
+      }
     }
   }
+  // document.body.appendChild( VRButton.createButton( renderer, buttonOptions ) );
   document.body.appendChild( VRButton.createButton( renderer, buttonOptions ) );
 
 }
@@ -328,6 +339,8 @@ function handleController(time, controller) {
   if (controller.children.length > 0) {
     controller.children[0].visible = showControllerRays
   }
+// return
+
   const motionController = controllerModel.motionController
   if (motionController) {
     const hand = motionController.xrInputSource.handedness
@@ -348,6 +361,7 @@ player.position.add(moveListener(gravity))
       player.rotation.y += - values.xAxis / 10
     }
   }
+// return
   // const { x, y, z } = controller.position
   // const position = new THREE.Vector3(x, y, z)
   // const position = controller.position.clone()
@@ -378,7 +392,7 @@ player.position.add(moveListener(gravity))
 
   controller.userData.velocity = calculateVelocity(positions)
   controller.userData.eulerVelocity = calculateVelocity(rotations )
-
+// return
   if ( controller.userData.squeezeEvent ) {
     for (const listener of squeezeListeners) {
       try {
@@ -482,6 +496,7 @@ function render(time, frame) {
 
   handleController(time, controller1)
   handleController(time, controller2)
+
   if (renderPointerCallback) {
     const hits = intersects(intersectList)
     renderPointerCallback(hits)
@@ -778,6 +793,10 @@ export class VRRoom {
 
   onRender(callback) {
     renderListeners.push(callback)
+  }
+
+  onSessionStarted(callback) {
+    sessionCallbackListeners.push(callback)
   }
 
   playSound(sound) {

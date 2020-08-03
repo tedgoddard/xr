@@ -6,6 +6,7 @@ const scene = vrRoom.scene
 let rover
 const halfPi = vrRoom.halfPi
 window.vrRoom = vrRoom
+window.THREE = THREE
 
 async function loadFloor() {
   const geometry = new THREE.RingGeometry(1.95, 2, 32)

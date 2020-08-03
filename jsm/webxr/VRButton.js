@@ -1,17 +1,6 @@
-/**
- * @author mrdoob / http://mrdoob.com
- * @author Mugen87 / https://github.com/Mugen87
- */
-
 var VRButton = {
 
-	createButton: function ( renderer, options ) {
-
-		if ( options && options.referenceSpaceType ) {
-
-			renderer.xr.setReferenceSpaceType( options.referenceSpaceType );
-
-		}
+	createButton: function ( renderer, options = { } ) {
 
 		function showEnterVR( /*device*/ ) {
 
@@ -26,6 +15,8 @@ var VRButton = {
 
 				currentSession = session;
 
+				if (options.onSessionStarted) options.onSessionStarted(session);
+
 			}
 
 			function onSessionEnded( /*event*/ ) {
@@ -35,6 +26,8 @@ var VRButton = {
 				button.textContent = 'ENTER VR';
 
 				currentSession = null;
+
+				if (options.onSessionEnded) options.onSessionEnded();
 
 			}
 
@@ -71,7 +64,7 @@ var VRButton = {
 					// ('local' is always available for immersive sessions and doesn't need to
 					// be requested separately.)
 
-					var sessionInit = { optionalFeatures: [ 'local-floor', 'bounded-floor' ] };
+					var sessionInit = { optionalFeatures: [ 'local-floor', 'bounded-floor', 'hand-tracking' ] };
 					navigator.xr.requestSession( 'immersive-vr', sessionInit ).then( onSessionStarted );
 
 				} else {
@@ -127,6 +120,7 @@ var VRButton = {
 		if ( 'xr' in navigator ) {
 
 			var button = document.createElement( 'button' );
+			button.id = 'VRButton';
 			button.style.display = 'none';
 
 			stylizeElement( button );
