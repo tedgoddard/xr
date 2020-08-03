@@ -25,4 +25,8 @@ Adventures in Reality
 
 ### Perseverance Mars Rover VR
 
-[Perseverance Rover VR VR](perseverance.html): The Perseverance Mars Rover in VR, obtained from the [NASA Mars Exploration Program](https://mars.nasa.gov/resources/24584/curiosity-rover-3d-model/)
+[Perseverance Rover VR](perseverance.html): The Perseverance Mars Rover in VR, obtained from the [NASA Mars Exploration Program](https://mars.nasa.gov/resources/24584/curiosity-rover-3d-model/)
+
+### Oculus Quest Hand Tracking VR
+
+[Oculus Quest Hand Tracking VR](hands.html): A simple hand tracking demo for the Oculus Quest modified from the [Vercel example](https://webxr-handtracking.vercel.app/basic.html)
