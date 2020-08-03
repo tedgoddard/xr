@@ -22,3 +22,7 @@ Adventures in Reality
 ### Out of Body
 
 [Out of Body VR](thumbstickoob.html): An out of body experience. Fly around and see what your controllers are doing
+
+### Perseverance Mars Rover VR
+
+[Perseverance Rover VR VR](perseverance.html): The Perseverance Mars Rover in VR, obtained from the [NASA Mars Exploration Program](https://mars.nasa.gov/resources/24584/curiosity-rover-3d-model/)
