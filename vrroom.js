@@ -31,6 +31,7 @@ const textureLoader = new THREE.TextureLoader()
 
 const zeroVector = new THREE.Vector3()
 const halfPi = Math.PI / 2
+const twoPi = Math.PI * 2
 
 let container
 let camera, scene, raycaster, renderer, controls
@@ -702,6 +703,7 @@ export class VRRoom {
     this.camera = camera
     this.player = player
     this.halfPi = halfPi
+    this.twoPi = twoPi
     this.gravity = gravity
     this.raycaster = raycaster
     this.raycastIntersect = raycastIntersect
