@@ -30,3 +30,7 @@ Adventures in Reality
 ### Oculus Quest Hand Tracking VR
 
 [Oculus Quest Hand Tracking VR](hands.html): A simple hand tracking demo for the Oculus Quest modified from the [Vercel example](https://webxr-handtracking.vercel.app/basic.html)
+
+### Complex Function VR
+
+[Complex Function VR](vrcomplex.html): A simple graph with distance r to height and  theta mapped to color. Enter an expression in x to graph it.
