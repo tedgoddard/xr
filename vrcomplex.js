@@ -86,6 +86,7 @@ const mathField = mathQuill.MathField(mathFieldSpan, {
     }
   }
 })
+window.mathField = mathField
 
 function parametricFunction(x, y, target) {
   x = 5 * x - 2.5

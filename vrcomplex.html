@@ -9,6 +9,12 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
     <script src="./js/mathquill.min.js"></script>
     <script src="./js/evaluatex.min.js"></script>
+    <script>
+      function mathKeypress(event) {
+        console.log(event)
+        mathField.typedText(event.key)
+      }
+    </script>
     <style>
       #title {
         font-size: x-large;
@@ -29,7 +35,7 @@
     <div id="title">
       Complex Functions in VR
     </div>
-    <p id="expression-panel">Expression: <span id="math-field"></span></p>
+    <p id="expression-panel">Expression: <span id="math-field"></span><input type="text" onkeypress="mathKeypress(event)"></input></p>
 
     <script type="module" src="vrcomplex.js"></script>
 
