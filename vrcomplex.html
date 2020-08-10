@@ -10,8 +10,8 @@
     <script src="./js/mathquill.min.js"></script>
     <script src="./js/evaluatex.min.js"></script>
     <script>
-      function mathKeypress(event) {
-        console.log(event)
+      function mathKeyup(event) {
+console.log(event)
         mathField.typedText(event.key)
       }
     </script>
@@ -35,7 +35,7 @@
     <div id="title">
       Complex Functions in VR
     </div>
-    <p id="expression-panel">Expression: <span id="math-field"></span><input type="text" onkeypress="mathKeypress(event)"></input></p>
+    <p id="expression-panel">Expression: <span id="math-field"></span><input type="text" onkeyup="mathKeyup(event)"></input></p>
 
     <script type="module" src="vrcomplex.js"></script>
 
