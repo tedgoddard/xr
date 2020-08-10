@@ -11,7 +11,6 @@
     <script src="./js/evaluatex.min.js"></script>
     <script>
       function mathKeyup(event) {
-console.log(event)
         mathField.typedText(event.srcElement.value)
       }
     </script>
@@ -35,7 +34,11 @@ console.log(event)
     <div id="title">
       Complex Functions in VR
     </div>
-    <p id="expression-panel">Expression: <span id="math-field"></span><input type="text" onchange="mathKeyup(event)"></input></p>
+    <p id="expression-panel">Expression: 
+      <span id="math-field"></span>
+      <input type="text" onchange="mathKeyup(event)"></input>
+      Polar: <input type="checkbox" id="polar-check"></input>
+    </p>
 
     <script type="module" src="vrcomplex.js"></script>
 

@@ -2,6 +2,7 @@ import { VRRoom } from "./vrroom.js"
 import * as THREE from './js/three.module.js';
 
 const mathFieldSpan = document.getElementById('math-field')
+const polarCheck = document.getElementById('polar-check')
 
 const vrRoom = new VRRoom()
 const scene = vrRoom.scene
@@ -88,11 +89,29 @@ const mathField = mathQuill.MathField(mathFieldSpan, {
 })
 window.mathField = mathField
 
-function parametricFunction(x, y, target) {
+const funcs = {
+  polar: w => Math.sqrt(w.x * w.x + w.y * w.y),
+  real: w => w.x,
+  imaginary: w => w.y
+}
+
+function parametricFunctionPolar(x, y, target) {
+  return parametricFunction(x, y, target, { func: funcs.polar })
+}
+
+function parametricFunctionReal(x, y, target) {
+  return parametricFunction(x, y, target, { func: funcs.real })
+}
+
+function parametricFunctionImaginary(x, y, target) {
+  return parametricFunction(x, y, target, { func: funcs.imaginary })
+}
+
+function parametricFunction(x, y, target, options) {
   x = 5 * x - 2.5
   y = 5 * y - 2.5
   const w = fn({ x: { x, y } })
-  let z = Math.sqrt(w.x * w.x + w.y * w.y)
+  let z = options.func(w)
   z = z < 100 ? z : 100
   const coords = isNaN(z) ? [0, 0, 0] : [x, y, z]
   target.set(...coords)
@@ -102,7 +121,32 @@ function drawGraph() {
   if (graph) {
     scene.remove(graph)
   }
-  const geometry = new THREE.ParametricGeometry( parametricFunction, 100, 100, true );
+  if (polarCheck.checked) {
+    drawGraphPolar()
+  } else {
+    drawGraphSplit()
+  }
+}
+
+function drawGraphSplit() {
+  const geometryR = new THREE.ParametricGeometry( parametricFunctionReal, 100, 100, true );
+  const materialR = new THREE.MeshBasicMaterial({ color: 0x884444, side: THREE.DoubleSide })
+  const graphR = new THREE.Mesh(geometryR, materialR)
+  graphR.rotation.x = -vrRoom.halfPi
+
+  const geometryI = new THREE.ParametricGeometry( parametricFunctionImaginary, 100, 100, true );
+  const materialI = new THREE.MeshBasicMaterial({ color: 0x444488, side: THREE.DoubleSide })
+  const graphI = new THREE.Mesh(geometryI, materialI)
+  graphI.rotation.x = -vrRoom.halfPi
+
+  graph = new THREE.Object3D()
+  graph.add(graphR)
+  graph.add(graphI)
+  scene.add(graph)
+}
+
+function drawGraphPolar() {
+  const geometry = new THREE.ParametricGeometry( parametricFunctionPolar, 100, 100, true );
   const material = new THREE.MeshBasicMaterial({ vertexColors: THREE.VertexColors, side: THREE.DoubleSide })
   graph = new THREE.Mesh(geometry, material)
   graph.rotation.x = -vrRoom.halfPi
