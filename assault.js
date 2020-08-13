@@ -415,16 +415,20 @@ async function init() {
     }
   })
 
-  vrRoom.addMoveListener( delta => {
+  vrRoom.addMoveListener( ({ x, v }) => {
     const position = vrRoom.player.position.clone()
-    position.add(delta)
+    position.add(x)
     for (const crate of crates) {
       const boundingBox = crate.userData.boundingBox
       if (boundingBox.containsPoint(position)) {
-        return new THREE.Vector3()
+        x = new THREE.Vector3()
       }
     }
-    return delta
+    if (position.y < 0) {
+      x.y = 0
+      v = new THREE.Vector3()
+    }
+    return ({ x, v })
   })
 
   // vrRoom.lookDown()

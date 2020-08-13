@@ -58,6 +58,8 @@ let controller1, controller2
 var controllerGrip1, controllerGrip2;
 // let lastRender = "_"
 const gravity = new THREE.Vector3(0, -0.00009, 0)
+const playerGravity = gravity.clone().multiplyScalar(10)
+let applyGravity = false
 // const gravity = new THREE.Vector3(0, 0, 0)
 
 let crazyGlobalCallback = null
@@ -69,7 +71,7 @@ const squeezeListeners = []
 const squeezeEndListeners = []
 const renderListeners = []
 const sessionCallbackListeners = []
-let moveListener = delta => delta
+let moveListener = move => move
 
 function addController(scene, controller) {
 
@@ -123,6 +125,7 @@ function init(options = {}) {
     scene.background = new THREE.Color( 0x505050 );
   }
   player = new THREE.Object3D()
+  player.userData.velocity = new THREE.Vector3()
   scene.add(player)
 
   const cameraOptions = options.camera || { fov: 50, near: 0.01, far: 50 }
@@ -345,6 +348,7 @@ function handleController(time, controller) {
   const motionController = controllerModel.motionController
   if (motionController) {
     const hand = motionController.xrInputSource.handedness
+    controller.userData.hand = hand
     const thumbStick = motionController.components["xr-standard-thumbstick"]
     const values = thumbStick.values
     if (hand == "left") {
@@ -355,9 +359,12 @@ function handleController(time, controller) {
       const delta = cameraDirection.multiplyScalar(-values.yAxis / 10)
       const strafeDelta = strafeDirection.multiplyScalar(values.xAxis / 10)
       delta.add(strafeDelta)
-      player.position.add(moveListener(delta))
+      const move = {
+        x: delta,
+        v: new THREE.Vector3()
+      }
+      player.position.add(moveListener(move).x)
 // delta = new THREE.Vector3(0, -0.00009, 0)
-player.position.add(moveListener(gravity))
     } else if (hand == "right") {
       player.rotation.y += - values.xAxis / 10
     }
@@ -497,6 +504,18 @@ function render(time, frame) {
 
   handleController(time, controller1)
   handleController(time, controller2)
+
+  if (applyGravity) {
+    player.userData.velocity.add(playerGravity)
+  }
+  const move = {
+    x: new THREE.Vector3(),
+    v: player.userData.velocity
+  }
+  const moved = moveListener(move)
+  player.userData.velocity = moved.v
+//not quite going to work -- need to return moveListener both x and v
+  player.position.add(moved.v)
 
   if (renderPointerCallback) {
     const hits = intersects(intersectList)
@@ -696,7 +715,7 @@ function hapticPulse(controller, intensity, duration) {
 }
 
 export class VRRoom {
-  constructor(options) {
+  constructor(options = { }) {
     init(options)
     animate()
     this.scene = scene
@@ -711,6 +730,15 @@ export class VRRoom {
     this.hapticPulse = hapticPulse
     this.makeLabel = makeLabel
     this.sounds = { thump, scuff, ar15n, vintorez }
+    applyGravity = options.gravity
+    if (window.XRHand) {
+      this.fingers = [
+        XRHand.INDEX_PHALANX_INTERMEDIATE,
+        XRHand.MIDDLE_PHALANX_INTERMEDIATE,
+        XRHand.RING_PHALANX_INTERMEDIATE,
+        XRHand.LITTLE_PHALANX_INTERMEDIATE
+      ]
+    }
   }
 
   set controllerDecorator(callback) {
@@ -725,8 +753,13 @@ export class VRRoom {
     return controller2
   }
 
-  async loadTexturePanel(image) {
+  async loadTexture(image) {
     const texture = await textureLoader.load(image)
+    return texture
+  }
+
+  async loadTexturePanel(image) {
+    const texture = await this.loadTexture(image)
       texture.format = THREE.RGBAFormat
       const material = new THREE.MeshLambertMaterial({
         map: texture
