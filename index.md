@@ -34,3 +34,8 @@ Adventures in Reality
 ### Complex Function VR
 
 [Complex Function VR](vrcomplex.html): A simple graph with distance r to height and  theta mapped to color. Enter an expression in x to graph it.
+
+### Oculus Quest Hand Tracking Climbing Wall VR
+
+[Climbing Wall VR](climb.html): A very rough climbing wall with hand tracking. A work in progress.
+
