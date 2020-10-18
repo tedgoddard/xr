@@ -13,7 +13,8 @@ import { OrbitControls } from './jsm/controls/OrbitControls.js'
 //   const polyfill = new WebXRPolyfill()
 // }
 
-var clock = new THREE.Clock();
+let clock = new THREE.Clock()
+
 const loader = new GLTFLoader()
 const audioListener = new THREE.AudioListener()
 const audioLoader = new THREE.AudioLoader()
@@ -34,7 +35,7 @@ const halfPi = Math.PI / 2
 const twoPi = Math.PI * 2
 
 let container
-let camera, scene, raycaster, renderer, controls
+let camera, scene, raycaster, renderer, orbitControls
 
 let room
 let knife
@@ -71,7 +72,57 @@ const squeezeListeners = []
 const squeezeEndListeners = []
 const renderListeners = []
 const sessionCallbackListeners = []
+
+let pointer = new THREE.Vector2()
+let onUpPosition = new THREE.Vector2()
+let onDownPosition = new THREE.Vector2()
+
+const pointerUpListeners = []
+const pointerDownListeners = []
+const pointerMoveListeners = []
+const pointerMoveObjects = []
+
 let moveListener = move => move
+
+const squareSize = 1
+const squareData = new Uint8Array(3 * squareSize * squareSize).fill(255)
+const squareTexture = new THREE.DataTexture(squareData, squareSize, squareSize, THREE.RGBFormat)
+
+const particleVertexShader = `
+  attribute float size;
+  varying vec3 vColor;
+
+  void main() {
+    vColor = color;
+    vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+    gl_PointSize = size * ( 300.0 / -mvPosition.z );
+    gl_Position = projectionMatrix * mvPosition;
+  }
+`
+
+const particleFragmentShader = `
+  uniform sampler2D pointTexture;
+  varying vec3 vColor;
+
+  void main() {
+    gl_FragColor = vec4( vColor, 1.0 );
+    gl_FragColor = gl_FragColor * texture2D( pointTexture, gl_PointCoord );
+  }
+`
+
+const particleShaderUniforms = {
+  pointTexture: { value: squareTexture }
+}
+
+const particleShaderMaterial = new THREE.ShaderMaterial({
+  uniforms: particleShaderUniforms,
+  vertexShader: particleVertexShader,
+  fragmentShader: particleFragmentShader,
+  // blending: THREE.AdditiveBlending,
+  depthTest: true,
+  transparent: true,
+  vertexColors: true
+})
 
 function addController(scene, controller) {
 
@@ -109,11 +160,46 @@ function addController(scene, controller) {
 }
 
 function setupControls(camera, renderer) {
-  controls = new OrbitControls(camera, renderer.domElement)
-  controls.enableDamping = true;
-  controls.dampingFactor = 0.05;
-  controls.screenSpacePanning = false;
+  orbitControls = new OrbitControls(camera, renderer.domElement);
+  orbitControls.enableDamping = true
+  orbitControls.dampingFactor = 0.05
+  orbitControls.screenSpacePanning = false
 }
+
+function onPointerDown(event) {
+  onDownPosition.x = event.clientX
+  onDownPosition.y = event.clientY
+  for (const listener of pointerDownListeners) {
+    listener(onDownPosition)
+  }
+}
+
+function onPointerUp(event) {
+  onUpPosition.x = event.clientX
+  onUpPosition.y = event.clientY
+  for (const listener of pointerUpListeners) {
+    listener(onUpPosition)
+  }
+}
+
+function onPointerMove(event) {
+  pointer.x = (event.clientX / window.innerWidth) * 2 - 1
+  pointer.y = -(event.clientY / window.innerHeight) * 2 + 1
+
+  raycaster.setFromCamera(pointer, camera)
+  const intersects = raycaster.intersectObjects(pointerMoveObjects)
+  if (intersects.length == 0) {
+    return
+  }
+
+  for (const listener of pointerMoveListeners) {
+    listener(intersects)
+  }
+}
+
+document.addEventListener('pointerdown', onPointerDown, false)
+document.addEventListener('pointerup', onPointerUp, false)
+document.addEventListener('pointermove', onPointerMove, false )
 
 function init(options = {}) {
 
@@ -720,11 +806,15 @@ export class VRRoom {
     animate()
     this.scene = scene
     this.camera = camera
+    this.renderer = renderer
     this.player = player
     this.halfPi = halfPi
     this.twoPi = twoPi
     this.gravity = gravity
+    this.particleShaderMaterial = particleShaderMaterial
     this.raycaster = raycaster
+    this.pointerMoveObjects = pointerMoveObjects
+    this.orbitControls = orbitControls
     this.raycastIntersect = raycastIntersect
     this.intersects = intersects
     this.hapticPulse = hapticPulse
@@ -832,6 +922,19 @@ export class VRRoom {
 
   onSessionStarted(callback) {
     sessionCallbackListeners.push(callback)
+  }
+
+  //maybe call this onMouseUp or unify mouse and vr pointers
+  onPointerUp(callback) {
+    pointerUpListeners.push(callback)
+  }
+
+  onPointerDown(callback) {
+    pointerDownListeners.push(callback)
+  }
+
+  onPointerMove(callback) {
+    pointerMoveListeners.push(callback)
   }
 
   playSound(sound) {
