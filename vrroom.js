@@ -80,6 +80,7 @@ let onDownPosition = new THREE.Vector2()
 const pointerUpListeners = []
 const pointerDownListeners = []
 const pointerMoveListeners = []
+const pointerDownObjects = []
 const pointerMoveObjects = []
 
 let moveListener = move => move
@@ -169,8 +170,11 @@ function setupControls(camera, renderer) {
 function onPointerDown(event) {
   onDownPosition.x = event.clientX
   onDownPosition.y = event.clientY
+  raycaster.setFromCamera(pointer, camera)
+  const intersects = raycaster.intersectObjects(pointerDownObjects)
+
   for (const listener of pointerDownListeners) {
-    listener(onDownPosition)
+    listener(onDownPosition, intersects)
   }
 }
 
@@ -188,12 +192,9 @@ function onPointerMove(event) {
 
   raycaster.setFromCamera(pointer, camera)
   const intersects = raycaster.intersectObjects(pointerMoveObjects)
-  if (intersects.length == 0) {
-    return
-  }
 
   for (const listener of pointerMoveListeners) {
-    listener(intersects)
+    listener(pointer, intersects)
   }
 }
 
@@ -555,9 +556,7 @@ function handleController(time, controller) {
 
 
 function animate() {
-
-  renderer.setAnimationLoop( render );
-
+  renderer.setAnimationLoop(render)
 }
 
 function stickKnife(knifeWorld) {
@@ -813,6 +812,7 @@ export class VRRoom {
     this.gravity = gravity
     this.particleShaderMaterial = particleShaderMaterial
     this.raycaster = raycaster
+    this.pointerDownObjects = pointerDownObjects
     this.pointerMoveObjects = pointerMoveObjects
     this.orbitControls = orbitControls
     this.raycastIntersect = raycastIntersect

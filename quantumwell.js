@@ -24,6 +24,27 @@ const splinePoints = [
 const splinePointsLength = splinePoints.length
 const splineHelperObjects = []
 
+let energyControl = null
+let energyPlane = null
+let energyLabel = null
+function addEnergyControl() {
+  const geometry = new THREE.BoxBufferGeometry(0.05, 0.05, 0.05)
+  const material = new THREE.MeshLambertMaterial({ color: 'yellow' })
+  const mesh = new THREE.Mesh(geometry, material)
+  mesh.position.set(-1.5, 0, 0)
+  scene.add(mesh)
+  vrRoom.pointerDownObjects.push(mesh)
+  energyControl = mesh
+  energyPlane = new THREE.Mesh(
+    new THREE.PlaneBufferGeometry(0.5, 8, 8, 8),
+    new THREE.MeshBasicMaterial( { color: 0xFFFFFF, alphaTest: 0, visible: false })
+  )
+  energyPlane.position.set(-1.5, 0, 0)
+  vrRoom.pointerMoveObjects.push(energyPlane)
+  scene.add(energyPlane)
+}
+addEnergyControl()
+
 for (let i = 0; i < splinePointsLength; i++) {
   const geometry = new THREE.BoxBufferGeometry(0.05, 0.05, 0.05)
   const material = new THREE.MeshLambertMaterial({ color: 'green' })
@@ -34,8 +55,48 @@ for (let i = 0; i < splinePointsLength; i++) {
   splineHelperObjects.push(mesh)
   vrRoom.pointerMoveObjects.push(mesh)
 }
-vrRoom.onPointerMove((intersects) => {
-  const object = intersects[0].object
+
+async function setEnergyLabel(E) {
+  if (energyLabel) {
+    scene.remove(energyLabel)
+  }
+  energyLabel = await vrRoom.loadText(E.toFixed(2), { xsize: 0.1})
+  THREE.GeometryUtils.center(energyLabel.geometry)
+  energyLabel.position.set(-1.5, -0.1, 0)
+  energyLabel.scale.set(0.3, 0.3, 0.3)
+  scene.add(energyLabel)
+}
+
+vrRoom.onPointerUp( position => {
+  vrRoom.orbitControls.enabled = true
+  if (energyControl.userData.dragging) {
+    const E = 100 * energyControl.position.y
+    schrodinger.E = E
+    schrodinger.search()
+    energyControl.userData.dragging = false
+    setEnergyLabel(E)
+  }
+})
+
+vrRoom.onPointerDown( (position, intersects) => {
+  const object = intersects[0]?.object
+  if (object == energyControl) {
+    vrRoom.orbitControls.enabled = false
+    energyControl.userData.dragging = true
+    return
+  }
+})
+
+vrRoom.onPointerMove((position, intersects) => {
+  const energyPlaneIntersect = intersects.find( intersect => intersect.object == energyPlane )
+  if (energyPlaneIntersect) {
+    if (energyControl.userData.dragging) {
+      energyControl.position.y = energyPlaneIntersect.point.y
+    }
+    return
+  }
+
+  const object = intersects[0]?.object
   if (object !== transformControl.object) {
     transformControl.attach(object)
   }
@@ -44,7 +105,7 @@ const transformControl = new TransformControls(vrRoom.camera, vrRoom.renderer.do
 transformControl.addEventListener('dragging-changed', event => {
   vrRoom.orbitControls.enabled = !event.value
   if (!event.value) {
-    schrodinger.E = 20
+    schrodinger.E = 100 * energyControl.position.y
     schrodinger.search()
   }
 })
