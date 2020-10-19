@@ -39,3 +39,7 @@ Adventures in Reality
 
 [Climbing Wall VR](climb.html): A very rough climbing wall with hand tracking. A work in progress.
 
+### Numerical Schrödinger Equation Solution for Catmull-Rom Energy Well
+
+[Quantum Well VR](quantumwell.html): Prototype of a 1D Schrödinger Equation Solution. Another work in progress.
+
