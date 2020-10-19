@@ -437,6 +437,9 @@ function handleController(time, controller) {
     const hand = motionController.xrInputSource.handedness
     controller.userData.hand = hand
     const thumbStick = motionController.components["xr-standard-thumbstick"]
+    if (!thumbStick) {
+      return
+    }
     const values = thumbStick.values
     if (hand == "left") {
       const xrCamera = renderer.xr.getCamera(camera)
