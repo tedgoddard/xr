@@ -887,7 +887,6 @@ export class VRRoom {
     textGeo.computeBoundingBox()
     var centerOffset = - 0.5 * (textGeo.boundingBox.max.x - textGeo.boundingBox.min.x)
 
-    textGeo = new THREE.BufferGeometry().fromGeometry(textGeo)
     const materials = options.materials || [
       new THREE.MeshPhongMaterial( { color: 0x888888, flatShading: false } ), // front
       new THREE.MeshPhongMaterial( { color: 0x888888, flatShading: false } ) // side
