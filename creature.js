@@ -26,7 +26,7 @@ function getTentaclePath(data) {
 
 function createTentacle() {
   const material = new THREE.MeshPhongMaterial({ color: 0x006600 })
-  const tentacle = new THREE.Mesh(new THREE.Geometry(), material)
+  const tentacle = new THREE.Mesh(new THREE.BufferGeometry(), material)
   const data = generateTentacleData()
   tentacle.userData.data = data
   updateTentacle(tentacle)
