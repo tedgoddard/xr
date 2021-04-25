@@ -1,21 +1,27 @@
-var VRButton = {
+class VRButton {
 
-	createButton: function ( renderer, options = { } ) {
+	static createButton( renderer, options ) {
+
+		if ( options ) {
+
+			console.error( 'THREE.VRButton: The "options" parameter has been removed. Please set the reference space type via renderer.xr.setReferenceSpaceType() instead.' );
+
+		}
+
+		const button = document.createElement( 'button' );
 
 		function showEnterVR( /*device*/ ) {
 
-			var currentSession = null;
+			let currentSession = null;
 
-			function onSessionStarted( session ) {
+			async function onSessionStarted( session ) {
 
 				session.addEventListener( 'end', onSessionEnded );
 
-				renderer.xr.setSession( session );
+				await renderer.xr.setSession( session );
 				button.textContent = 'EXIT VR';
 
 				currentSession = session;
-
-				if (options.onSessionStarted) options.onSessionStarted(session);
 
 			}
 
@@ -26,8 +32,6 @@ var VRButton = {
 				button.textContent = 'ENTER VR';
 
 				currentSession = null;
-
-				if (options.onSessionEnded) options.onSessionEnded();
 
 			}
 
@@ -64,7 +68,7 @@ var VRButton = {
 					// ('local' is always available for immersive sessions and doesn't need to
 					// be requested separately.)
 
-					var sessionInit = { optionalFeatures: [ 'local-floor', 'bounded-floor', 'hand-tracking' ] };
+					const sessionInit = { optionalFeatures: [ 'local-floor', 'bounded-floor', 'hand-tracking' ] };
 					navigator.xr.requestSession( 'immersive-vr', sessionInit ).then( onSessionStarted );
 
 				} else {
@@ -119,7 +123,6 @@ var VRButton = {
 
 		if ( 'xr' in navigator ) {
 
-			var button = document.createElement( 'button' );
 			button.id = 'VRButton';
 			button.style.display = 'none';
 
@@ -135,7 +138,7 @@ var VRButton = {
 
 		} else {
 
-			var message = document.createElement( 'a' );
+			const message = document.createElement( 'a' );
 
 			if ( window.isSecureContext === false ) {
 
@@ -161,6 +164,6 @@ var VRButton = {
 
 	}
 
-};
+}
 
 export { VRButton };
