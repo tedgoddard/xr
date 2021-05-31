@@ -199,7 +199,7 @@ function moveBullet(delta, bullet) {
   }
   bullet.position.add(bulletVelocity)
   const bulletWorld = bullet.localToWorld(new THREE.Vector3())
-  if (bulletWorld.z < -10 ) {
+  if (bulletWorld.z < -20 ) {
     scene.remove(bullet)
   }
 }
