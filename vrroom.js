@@ -7,6 +7,7 @@ import { OBJLoader } from './jsm/loaders/OBJLoader.js'
 import { MTLLoader } from './jsm/loaders/MTLLoader.js'
 import { OrbitControls } from './jsm/controls/OrbitControls.js'
 import { PathShape } from './PathShape.js'
+import { HAND } from './hand.js'
 
 // import WebXRPolyfill from './jsm/webxr-polyfill.module.js'
 
@@ -382,20 +383,18 @@ function init(options = {}) {
 
   window.addEventListener( 'resize', onWindowResize, false );
 
-  const buttonOptions = {
-    onSessionStarted: (session) => {
-      console.log("click")
-      thump.context.resume()
-      scuff.context.resume()
-      ar15n.forEach( sound => sound.context.resume() )
-      vintorez.forEach( sound => sound.context.resume() )
-      for (const listener of sessionCallbackListeners) {
-        listener(session)
-      }
+  const onSessionStarted = (session) => {
+    thump.context.resume()
+    scuff.context.resume()
+    ar15n.forEach( sound => sound.context.resume() )
+    vintorez.forEach( sound => sound.context.resume() )
+    for (const listener of sessionCallbackListeners) {
+      listener(session)
     }
   }
-  // document.body.appendChild( VRButton.createButton( renderer, buttonOptions ) );
-  document.body.appendChild( VRButton.createButton( renderer, buttonOptions ) );
+
+  renderer.xr.addEventListener("sessionstart", onSessionStarted)
+  document.body.appendChild(VRButton.createButton(renderer))
 
 }
 
@@ -856,14 +855,12 @@ export class VRRoom {
     this.makeLabel = makeLabel
     this.sounds = { thump, scuff, ar15n, vintorez }
     applyGravity = options.gravity
-    if (window.XRHand) {
-      this.fingers = [
-        XRHand.INDEX_PHALANX_INTERMEDIATE,
-        XRHand.MIDDLE_PHALANX_INTERMEDIATE,
-        XRHand.RING_PHALANX_INTERMEDIATE,
-        XRHand.LITTLE_PHALANX_INTERMEDIATE
-      ]
-    }
+    this.fingers = [
+      HAND.INDEX_PHALANX_INTERMEDIATE,
+      HAND.MIDDLE_PHALANX_INTERMEDIATE,
+      HAND.RING_PHALANX_INTERMEDIATE,
+      HAND.LITTLE_PHALANX_INTERMEDIATE
+    ]
   }
 
   set controllerDecorator(callback) {
@@ -942,7 +939,6 @@ export class VRRoom {
     textGeo.computeBoundingBox()
     var centerOffset = - 0.5 * (textGeo.boundingBox.max.x - textGeo.boundingBox.min.x)
 
-    textGeo = new THREE.BufferGeometry().fromGeometry(textGeo)
     const materials = options.materials || [
       new THREE.MeshPhongMaterial( { color: 0x888888, flatShading: false } ), // front
       new THREE.MeshPhongMaterial( { color: 0x888888, flatShading: false } ) // side

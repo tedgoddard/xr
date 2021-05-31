@@ -1,8 +1,8 @@
-const http = require('http')
-const https = require('https')
-const fs = require('fs')
-const express = require('express')
-const WebSocket = require("ws")
+import http from 'http'
+import https from 'https'
+import fs from 'fs'
+import express from 'express'
+import WebSocket from 'ws'
 
 // openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -nodes -days 365
 
