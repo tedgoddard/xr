@@ -15,6 +15,7 @@ const red = 0xFF0000
 
 let panoTree = null
 let indexedPanos = []
+let currentMarker = -1
 let currentPano = null
 const panos = { }
 
@@ -101,13 +102,19 @@ document.onkeydown = (event) => {
 }
 
 const updateNearestMarker = () => {
+  if (!panoTree) {
+    return
+  }
   const playerPosition = vrRoom.player.position.toArray()
-  const count = 2
+  const count = 1
   const maxDistance = 1
   const nearMarkers = panoTree.nearest(playerPosition, count, maxDistance)
   for (const hit of nearMarkers) {
     const pos = hit[0].pos
-    const obj = hit[0].obj
+    if (currentMarker == pos) {
+      break
+    }
+    currentMarker = pos
     const pano = indexedPanos[pos]
     console.log(pano.sphereHash)
     setPano(pano)
@@ -120,6 +127,7 @@ const updateNearestMarker = () => {
 }
 
 vrRoom.onRender( (delta, frame, renderer) => {
+  updateNearestMarker()
 })
 
 async function init() {
