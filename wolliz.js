@@ -10,6 +10,9 @@ const panoURLBase = "https://cdn.youriguide.com"
 const panoInfoBase = "https://cdn.youriguide.com"
 const address = "2640_5_ave_nw_calgary_ab"
 
+const grey = 0x555555
+const red = 0xFF0000
+
 let panoTree = null
 let indexedPanos = []
 let currentPano = null
@@ -108,6 +111,11 @@ const updateNearestMarker = () => {
     const pano = indexedPanos[pos]
     console.log(pano.sphereHash)
     setPano(pano)
+    const marker = pano.marker
+    marker.material.color.setHex(red)
+    setTimeout(() => {
+      marker.material.color.setHex(grey)
+    }, 5000)
   }
 }
 
@@ -137,12 +145,12 @@ async function init() {
   const panos = bestFloor.layout?.panos
   const poss = panos.map(({ pos }) => to3D(pos))
   const floorCenter = centroid(poss)
-  const markerMaterial = new THREE.MeshBasicMaterial( {color: 0x00ff00, emissive: 1.0 } )
 
   for (const pano of panos) {
     const panoPos = vTimes(vMinus(to3D(pano.pos), floorCenter), 1/1000)
     pano.position = panoPos
-    const marker = new THREE.Mesh(new THREE.SphereGeometry(0.1, 0.1, 0.1), markerMaterial)
+    const markerMaterial = new THREE.MeshBasicMaterial( {color: grey, emissive: 1.0 } )
+    const marker = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.1), markerMaterial)
     marker.position.set(...panoPos)
     scene.add(marker)
     pano.marker = marker
