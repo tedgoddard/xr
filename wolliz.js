@@ -155,7 +155,7 @@ async function init() {
   const floorCenter = centroid(poss)
 
   for (const pano of panos) {
-    const panoPos = vTimes(vMinus(to3D(pano.pos), floorCenter), 1/1000)
+    const panoPos = vTimes(vMinus(to3D(pano.pos), floorCenter), 1/100)
     pano.position = panoPos
     const markerMaterial = new THREE.MeshBasicMaterial( {color: grey, emissive: 1.0 } )
     const marker = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.1), markerMaterial)
