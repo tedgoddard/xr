@@ -12,6 +12,7 @@ const address = "2640_5_ave_nw_calgary_ab"
 
 const grey = 0x555555
 const red = 0xFF0000
+const panoSize = 10
 
 let panoTree = null
 let indexedPanos = []
@@ -29,23 +30,36 @@ const vMinus = (u, v) => ([u[0] - v[0], u[1] - v[1], u[2] - v[2]])
 const vTimes = (v, a) => ([v[0] * a, v[1] * a, v[2] * a])
 
 function setPano(pano) {
-  const { id, sphereHash } = pano
+  const { id, sphereHash, rot, position } = pano
+  const marker = pano.marker
+
+  if (pano.skybox) {
+    pano.skybox.visible = true
+    return
+  }
   if (currentPano == sphereHash) {
     return
   }
-  const cachedPano = panos[sphereHash]
-  if (cachedPano) {
-    scene.background = cachedPano
-    return
-  }
+
   const shortHash = sphereHash.slice(0, 8)
   const names = [0, 2, 4, 5, 1, 3].map(n => `${n}.${shortHash}`)
-  const loader = new THREE.CubeTextureLoader().setPath(`${panoURLBase}/${address}/p/${id}/`)
-  loader.load(names, (background) => {
-    panos[sphereHash] = background
-    scene.background = background
-    currentPano = sphereHash
+
+  const urls = names.map(name => `${panoURLBase}/${address}/p/${id}/${name}`)
+  const materials = urls.map((url) => {
+    const texture = new THREE.TextureLoader().load(url)
+    return new THREE.MeshBasicMaterial({
+      map: texture,
+      side: THREE.BackSide,
+      fog: false,
+      depthWrite: false,
+    })
   })
+
+  const skybox = new THREE.Mesh( new THREE.BoxBufferGeometry(panoSize, panoSize, panoSize), materials )
+  pano.skybox = skybox
+  scene.add(skybox)
+  skybox.rotation.y = rot
+  skybox.position.set(...position)
 }
 
 function centroid(vectors) {
@@ -98,7 +112,6 @@ const movePlayer = {
 
 document.onkeydown = (event) => {
   movePlayer[event.key]()
-  updateNearestMarker()
 }
 
 const updateNearestMarker = () => {
@@ -107,16 +120,24 @@ const updateNearestMarker = () => {
   }
   const playerPosition = vrRoom.player.position.toArray()
   const count = 1
-  const maxDistance = 1
+  const maxDistance = 10
   const nearMarkers = panoTree.nearest(playerPosition, count, maxDistance)
+  if (nearMarkers.length == 0) {
+    return
+  }
+  for (const pano of indexedPanos) {
+    const skybox = pano.skybox ?? {}
+    skybox.visible = false
+  }
   for (const hit of nearMarkers) {
     const pos = hit[0].pos
+    const pano = indexedPanos[pos]
+    const skybox = pano.skybox ?? {}
+    skybox.visible = true
     if (currentMarker == pos) {
       break
     }
     currentMarker = pos
-    const pano = indexedPanos[pos]
-    console.log(pano.sphereHash)
     setPano(pano)
     const marker = pano.marker
     marker.material.color.setHex(red)
@@ -155,7 +176,7 @@ async function init() {
   const floorCenter = centroid(poss)
 
   for (const pano of panos) {
-    const panoPos = vTimes(vMinus(to3D(pano.pos), floorCenter), 1/100)
+    const panoPos = vTimes(vMinus(to3D(pano.pos), floorCenter), 1/1000)
     pano.position = panoPos
     const markerMaterial = new THREE.MeshBasicMaterial( {color: grey, emissive: 1.0 } )
     const marker = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.1), markerMaterial)
