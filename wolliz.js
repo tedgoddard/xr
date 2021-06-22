@@ -12,7 +12,7 @@ const address = "2640_5_ave_nw_calgary_ab"
 
 const grey = 0x555555
 const red = 0xFF0000
-const panoSize = 10
+const panoSize = 20
 
 let panoTree = null
 let indexedPanos = []
@@ -184,6 +184,7 @@ async function init() {
     scene.add(marker)
     pano.marker = marker
   }
+  window.panos = panos
   const treeInfo = initKdTree(panos)
   panoTree = treeInfo.kdtree
   indexedPanos = treeInfo.indexed
