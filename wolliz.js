@@ -2,7 +2,12 @@ import { VRRoom } from "./vrroom.js"
 import * as THREE from './js/three.module.js';
 import { TypedArrayUtils } from './jsm/utils/TypedArrayUtils.js'
 
-const vrRoom = new VRRoom({ disableBackground: true, disableGrid: true, gravity: false })
+const vrRoom = new VRRoom({ 
+  disableBackground: true, 
+  disableGrid: true, 
+  gravity: false, 
+  controls: 'pointerLockControls',
+})
 const scene = vrRoom.scene
 const player = vrRoom.player
 
@@ -10,9 +15,12 @@ const panoURLBase = "https://cdn.youriguide.com"
 const panoInfoBase = "https://cdn.youriguide.com"
 const address = "2640_5_ave_nw_calgary_ab"
 
+const sixteenthInchesPerMeter = 39.3701 * 16.0
+const posToM = 1 / sixteenthInchesPerMeter
 const grey = 0x555555
 const red = 0xFF0000
 const panoSize = 20
+const markerHeight = -3
 
 let panoTree = null
 let indexedPanos = []
@@ -100,20 +108,6 @@ function initKdTree(objects) {
   return { indexed, kdtree }
 }
 
-const stepSize = 0.25
-const movePlayer = {
-  w: () => { player.position.x -= stepSize },
-  a: () => { player.position.z += stepSize },
-  s: () => { player.position.x += stepSize },
-  d: () => { player.position.z -= stepSize },
-  q: () => { player.position.y -= stepSize },
-  e: () => { player.position.y += stepSize },
-}
-
-document.onkeydown = (event) => {
-  movePlayer[event.key]()
-}
-
 const updateNearestMarker = () => {
   if (!panoTree) {
     return
@@ -176,11 +170,13 @@ async function init() {
   const floorCenter = centroid(poss)
 
   for (const pano of panos) {
-    const panoPos = vTimes(vMinus(to3D(pano.pos), floorCenter), 1/1000)
+    const panoPos = vTimes(vMinus(to3D(pano.pos), floorCenter), posToM)
     pano.position = panoPos
     const markerMaterial = new THREE.MeshBasicMaterial( {color: grey, emissive: 1.0 } )
-    const marker = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.1), markerMaterial)
-    marker.position.set(...panoPos)
+    const marker = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.1, 10), markerMaterial)
+    const markerPos = [...panoPos]
+    markerPos[1] = markerHeight
+    marker.position.set(...markerPos)
     scene.add(marker)
     pano.marker = marker
   }
@@ -189,7 +185,7 @@ async function init() {
   panoTree = treeInfo.kdtree
   indexedPanos = treeInfo.indexed
 
-  setPano(panos[12])  
+  // setPano(panos[12])  
 }
 
 init().then()

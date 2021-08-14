@@ -11,7 +11,7 @@ const sport = 4443
 const port = 8000
 const rooms = { }
 
-const passphrase = "passphrase"
+const passphrase = "ingaffa"
 const options = {
   key: fs.readFileSync('key.pem'),
   cert: fs.readFileSync('cert.pem'),

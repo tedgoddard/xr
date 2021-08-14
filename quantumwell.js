@@ -68,7 +68,7 @@ async function setEnergyLabel(E) {
 }
 
 vrRoom.onPointerUp( position => {
-  vrRoom.orbitControls.enabled = true
+  vrRoom.controls.enabled = true
   if (energyControl.userData.dragging) {
     const E = 100 * energyControl.position.y
     schrodinger.E = E
@@ -81,7 +81,7 @@ vrRoom.onPointerUp( position => {
 vrRoom.onPointerDown( (position, intersects) => {
   const object = intersects[0]?.object
   if (object == energyControl) {
-    vrRoom.orbitControls.enabled = false
+    vrRoom.controls.enabled = false
     energyControl.userData.dragging = true
     return
   }
@@ -103,7 +103,7 @@ vrRoom.onPointerMove((position, intersects) => {
 })
 const transformControl = new TransformControls(vrRoom.camera, vrRoom.renderer.domElement)
 transformControl.addEventListener('dragging-changed', event => {
-  vrRoom.orbitControls.enabled = !event.value
+  vrRoom.controls.enabled = !event.value
   if (!event.value) {
     schrodinger.E = 100 * energyControl.position.y
     schrodinger.search()
