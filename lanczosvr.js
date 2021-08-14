@@ -12,12 +12,14 @@ let niter = 50
 let d = 2
 let l = 20
 let psiLen = l**d
+let squared = false
 
 const gui = new GUI()
 const guiParams = {
   E: 2,
   iterations: 30,
-  subdivisions: 20, //not working, l is stride everywhere
+  subdivisions: 20,
+  "^2": false,
   smooth: true,
 }
 function update() {
@@ -25,6 +27,7 @@ function update() {
   l = guiParams.subdivisions
   niter = guiParams.iterations
   psiLen = l**d
+  squared = guiParams['^2']
   console.log(guiParams)
   setup({ d, niter, l, st: guiParams.E})
   draw()
@@ -39,6 +42,7 @@ gui.add(guiParams, 'iterations', 1, 200).onChange( () => {
   update()
 })
 gui.add(guiParams, 'smooth', false, true).onChange(update)
+gui.add(guiParams, '^2', false, true).onChange(update)
 gui.add(guiParams, 'subdivisions', 1, 200).onChange(update)
 
 function arrayIndex(length, stride, x, y) {
@@ -55,21 +59,10 @@ function unitCoords(length, stride, index) {
   return { x, y }
 }
 
-function nparametricFunction(options) {
-  const { f, scale = 1 } = options
-  return (x, y, target) => {
-    let z = f[Math.floor(x * (l - 1)) + Math.floor(Math.floor(y * (psiLen - 1)) / l) * l] ?? 0
-    z *= scale
-    x = 5 * x - 2.5
-    y = 5 * y - 2.5
-    const coords = [x, y, z]
-    target.set(...coords)
-  }
-}
-
 function clamp(x, max, x0) {
   return x >= max ? x0 : x
 }
+
 function parametricFunction(options) {
   const { f, scale = 1, smooth = false } = options
   return (x, y, target) => {
@@ -111,8 +104,16 @@ function parametricFunction(options) {
   }
 }
 
+function normalize(psi) {
+  const psi2 = psi.square()
+  const norm = psi2.norm()
+  return psi2.multiplyScalar(1 / norm)
+}
+
 function draw() {
   const { psi, eigs, vpot } = iterate()
+
+  const psi2 = squared ? normalize(psi) : psi
 
   scene.remove(graphP)
   scene.remove(graphV)
@@ -123,7 +124,7 @@ function draw() {
   graphV.position.y = -2
   scene.add(graphV)
 
-  const geometryP = new THREE.ParametricGeometry( parametricFunction({ f: psi, scale: 5, smooth: guiParams.smooth }), 100, 100, true );
+  const geometryP = new THREE.ParametricGeometry( parametricFunction({ f: psi2, scale: 5, smooth: guiParams.smooth }), 100, 100, true );
   const materialP = new THREE.MeshStandardMaterial({ color: 0x993333, roughness: 0.5,flatShading: true, metalness: 0.5, opacity: 1.0, transparent: false, side: THREE.DoubleSide })
   graphP = new THREE.Mesh(geometryP, materialP)
   graphP.rotation.x = -vrRoom.halfPi

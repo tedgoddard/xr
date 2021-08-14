@@ -33,6 +33,10 @@ export class Vector extends Array {
     return dot(this, v)
   }
   
+  norm() {
+    return dot(this, this)
+  }
+
   copy(v) {
     this.forEach((x, i) => v[i] = x)
   }

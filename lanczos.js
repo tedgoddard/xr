@@ -236,7 +236,7 @@ export function iterate() {
   // console.log("eig scaled", eigscale)
 
   //psi indexes: i=1,l**d
-  const psi2 = psi.map( p => p**2 )
+  // const psi2 = psi.map( p => p**2 )
   // console.log("psi^2", psi2)
   return { eig, psi, vpot }
 }
