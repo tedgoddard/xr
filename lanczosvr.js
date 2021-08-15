@@ -21,29 +21,33 @@ const guiParams = {
   subdivisions: 20,
   "^2": false,
   smooth: true,
+  V: "((x - 0.5)**2 + (y - 0.5)**2) * 50"
 }
+
 function update() {
   guiParams.subdivisions = Math.floor(guiParams.subdivisions)
   l = guiParams.subdivisions
   niter = guiParams.iterations
   psiLen = l**d
   squared = guiParams['^2']
-  console.log(guiParams)
-  setup({ d, niter, l, st: guiParams.E})
+  const vpotF = new Function('x', 'y', `return ${guiParams.V}`)
+  console.log("guiParams", guiParams)
+  setup({ d, niter, l, st: guiParams.E, vpotF})
   draw()
 }
 
-gui.add(guiParams, 'E', 0, 20).onChange( () => { 
+gui.add(guiParams, 'E', 0, 20).onFinishChange( () => {
   guiParams.E = Math.floor(guiParams.E)
   update()
 })
-gui.add(guiParams, 'iterations', 1, 200).onChange( () => { 
+gui.add(guiParams, 'iterations', 1, 200).onFinishChange( () => {
   guiParams.iterations = Math.floor(guiParams.iterations)
   update()
 })
 gui.add(guiParams, 'smooth', false, true).onChange(update)
 gui.add(guiParams, '^2', false, true).onChange(update)
-gui.add(guiParams, 'subdivisions', 1, 200).onChange(update)
+gui.add(guiParams, 'V', '((x - 0.5)**2 + (y - 0.5)**2) * 50').onFinishChange(update)
+gui.add(guiParams, 'subdivisions', 1, 200).onFinishChange(update)
 
 function arrayIndex(length, stride, x, y) {
   const xIndex = Math.floor(x * (stride - 1))
@@ -131,6 +135,4 @@ function draw() {
   scene.add(graphP)
 }
 
-setup({ d, niter, l })
-draw()
-
+update()

@@ -158,12 +158,10 @@ const theRans = [
   
 ]
 
-
-
-
-
-
-
+const shallowParabola = (x, y) => ((x - 0.5)**2 + (y - 0.5)**2) * 50 -  2 * d
+const steepParabola = (x, y) => ((x - 0.5)**2 + (y - 0.5)**2) * 100 -  2 * d
+const eccentricParabola = (x, y) => ((x - 0.5)**2 + (8*y - 4)**2) * 100 -  2 * d
+const roundedBox = (x, y) => ((8*x - 4)**4 + (8*y - 4)**4) * 2 -  2 * d
 
 
 // 'Dimensionality (1-3)'
@@ -176,10 +174,7 @@ let l = 20 // 4
 let niter = 50 //5
 // 'State n to write to file'
 let st = 4
-
-
-
-
+let vpotF = eccentricParabola
 
 let psiLen = 0
 let f0 = null
@@ -203,6 +198,7 @@ export function setup(options) {
   len = options.len ?? 3
   niter = options.niter ?? 50
   st = options.st ?? 4
+  vpotF = options.vpotF
 console.log(options)
   psiLen = l**d
   f0 = new Vector(l**d)
@@ -511,10 +507,7 @@ function ran() {
 }
 
 
-const shallowParabola = (x, y) => ((x - 0.5)**2 + (y - 0.5)**2) * 50 -  2 * d
-const steepParabola = (x, y) => ((x - 0.5)**2 + (y - 0.5)**2) * 100 -  2 * d
-const eccentricParabola = (x, y) => ((x - 0.5)**2 + (8*y - 4)**2) * 100 -  2 * d
-const roundedBox = (x, y) => ((8*x - 4)**4 + (8*y - 4)**4) * 2 -  2 * d
+
 /*
 !-------------------------------------------!
 !multiply actual potential energy by escale !
@@ -527,7 +520,7 @@ function potentialenergy(escale) {
     const xInt = i - yInt * l
     const x = xInt / l
     const y = yInt / l
-    vpot[i] = eccentricParabola(x, y)
+    vpot[i] = vpotF(x, y)
   }
 
   vpot = vpot.multiplyScalar(escale)
