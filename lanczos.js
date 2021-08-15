@@ -234,7 +234,7 @@ export function iterate() {
   //psi indexes: i=1,l**d
   // const psi2 = psi.map( p => p**2 )
   // console.log("psi^2", psi2)
-  return { eig, psi, vpot }
+  return { eig, psi, vpot, escale }
 }
 
 /*
@@ -524,10 +524,10 @@ function potentialenergy(escale) {
   }
 
   vpot = vpot.multiplyScalar(escale)
-  for (let i = 0; i < vpot.length; i++) {
-    const y = Math.floor()
+  for (let i = 0; i < vpotLen; i++) {
     vpot[i] += 2 * d
   }
+
   //  real(8) :: escale
 
 //  allocate(vpot(l**d))

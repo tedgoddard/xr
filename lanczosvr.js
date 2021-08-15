@@ -115,13 +115,14 @@ function normalize(psi) {
 }
 
 function draw() {
-  const { psi, eigs, vpot } = iterate()
+  const { psi, eigs, vpot, escale } = iterate()
 
+  const vpotScaled = vpot.addScalar(-2 * d).multiplyScalar(0.1 / escale)
   const psi2 = squared ? normalize(psi) : psi
 
   scene.remove(graphP)
   scene.remove(graphV)
-  const geometryV = new THREE.ParametricGeometry( parametricFunction({ f: vpot, smooth: true }), 100, 100, true );
+  const geometryV = new THREE.ParametricGeometry( parametricFunction({ f: vpotScaled, smooth: true }), 100, 100, true );
   const materialV = new THREE.MeshPhongMaterial({ color: 0x444444, side: THREE.DoubleSide })
   graphV = new THREE.Mesh(geometryV, materialV)
   graphV.rotation.x = -vrRoom.halfPi
@@ -129,7 +130,7 @@ function draw() {
   scene.add(graphV)
 
   const geometryP = new THREE.ParametricGeometry( parametricFunction({ f: psi2, scale: 5, smooth: guiParams.smooth }), 100, 100, true );
-  const materialP = new THREE.MeshStandardMaterial({ color: 0x993333, roughness: 0.5,flatShading: true, metalness: 0.5, opacity: 1.0, transparent: false, side: THREE.DoubleSide })
+  const materialP = new THREE.MeshStandardMaterial({ color: 0x993333, roughness: 0.5, flatShading: true, metalness: 0.5, opacity: 1.0, transparent: false, side: THREE.DoubleSide })
   graphP = new THREE.Mesh(geometryP, materialP)
   graphP.rotation.x = -vrRoom.halfPi
   scene.add(graphP)
