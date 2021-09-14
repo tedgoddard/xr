@@ -1,5 +1,5 @@
 // import { multiply, add, subtract, dot } from "./vectorops.js"
-// import { eigs } from "mathjs"
+// import * as math from "mathjs"
 import { Vector, dot } from "./vectorops.js"
 
 //ported from http://physics.bu.edu/~py502/lectures4/examples/lanczos.f90 
@@ -155,13 +155,112 @@ const theRans = [
   0.12329477837597647 ,
   0.24950327179047244 ,
   0.52913630941164036 ,
-  
+  0.50910394773619083,
+  0.51092588633029778,
+  9.7951818265547164E-002,
+  0.69312134173911155,
+  0.62618796350276651,
+  0.71966667835490461,
+  0.60410989077595167,
+  0.78845413157364530,
+  0.77242978552320518,
+  6.9468660196611187E-002,
+  7.9807091022126020E-002,
+  0.54323416443990202,
+  0.38598227641378663,
+  0.22664350972047814,
+  0.22280323953178410,
+  0.63820546513290988,
+  0.97463855813383449,
+  0.13320635130206498,
+  0.38956112802228482,
+  0.67581351501007170,
+  0.98902042517238375,
+  0.88790036494170732,
+  0.29729714296657039,
+  0.48515419049742281,
+  0.14313044260663743,
+  0.70471639137860809,
+  0.74392740795689094,
+  0.29495407002511653,
+  0.62613437783442583,
+  0.70349549429270608,
+  0.43860092214168145,
+  7.6774288285303804E-002,
+  0.51565469591352386,
+  0.18668866630452757,
+  0.70963005807243607,
+  1.9471723244273709E-003,
+  0.53057839491056891,
+  7.9332334385217751E-002,
+  0.26792586828343079,
+  0.68831201756709004,
+  0.98280542592000475,
+  0.96231076004886917,
+  2.9822774831708143E-002,
+  0.34001153375245258,
+  0.55845321201847919,
+  0.87942880246861810,
+  0.58390250340303806,
+  0.76002887275172037,
+  0.42575958104486405,
+  0.11653104665581976,
+  0.42869594957552348,
+  0.40505899405189205,
+  0.73761917568411928,
+  0.29749428937985645,
+  0.34717131756261888,
+  0.10020060521031676,
+  0.50643776491367676,
+  0.59966131804624567,
+  0.18077021470068655,
+  0.26848195633882654,
+  0.67286385952930294,
+  0.25114653549158700,
+  0.33011183664093185,
+  0.19716291214669746,
+  0.74241492197211323,
+  0.97919071215098052,
+  0.40441652090127300,
+  0.92254612126147673,
+  0.29251343526461765,
+  0.65903663836927395,
+  0.44249007614042957,
+  9.8842668333940231E-002,
+  0.57388929867231497,
+  0.19043665851287167,
+  0.57285722495973013,
+  0.13268941720616390,
+  4.9576913380944831E-002,
+  0.95939748314636797,
+  0.86591893102009698,
+  0.56321729149383015,
+  0.92522315641411779,
+  0.87762125516608092,
+  0.27160115592897455,
+  0.65321188624257753,
+  0.94100561176948028,
+  0.81126822814982291,
+  0.42310812486944249,
+  0.29818038090221122,
+  0.33112457210784230,
+  3.9782955735753911E-002,
+  0.94590441207444198,
+  0.44090445462219141,
+  0.74465494751970063,
+  0.74265209659530718,
+  0.67100531134063646,
 ]
 
 const shallowParabola = (x, y) => ((x - 0.5)**2 + (y - 0.5)**2) * 50 -  2 * d
 const steepParabola = (x, y) => ((x - 0.5)**2 + (y - 0.5)**2) * 100 -  2 * d
 const eccentricParabola = (x, y) => ((x - 0.5)**2 + (8*y - 4)**2) * 100 -  2 * d
 const roundedBox = (x, y) => ((8*x - 4)**4 + (8*y - 4)**4) * 2 -  2 * d
+const walledCenter = (x, y) => Math.abs(x - 0.5) > 0.4 || Math.abs(y - 0.5) > 0.4 ? 100 : 0
+// Math.abs(x - 0.5) + Math.abs(y - 0.5) > 0.4
+// (Math.abs(x) < 0.5 && Math.abs(y) < 0.5) ? 0 : 2
+
+// Math.abs(x - 0.5) + Math.abs(y - 0.5) > 0.35 ? 4 : 0
 
 
 // 'Dimensionality (1-3)'
@@ -191,7 +290,9 @@ let escale = 1
 let vpot = null
 
 export function setup(options) {
-  mulberryRan = mulberry32(86212276011065758)
+  console.log("Maybe random", options.seed)
+  const mulberrySeed = options.seed ? options.seed : 86212276011065758
+  ranFunction = options.seed == -1 ? deterministicRan : mulberry32(mulberrySeed)
 
   l = options.l ?? 20
   d = options.d ?? 2
@@ -384,7 +485,6 @@ function hamoperation(n,f1,f2) {
        if (x != l) {f2[j]=f2[j]-f1[j+1]}
        if (y != 1) {f2[j]=f2[j]-f1[j-l]}
        if (y != l) {f2[j]=f2[j]-f1[j+l]}
-      //  console.log("x, y :", x, y)
 // console.log('--> Ham f1: ', JSON.stringify(f1))
 // console.log('--> Ham f2: ',JSON.stringify(f2))
       
@@ -393,9 +493,8 @@ function hamoperation(n,f1,f2) {
     const ll = l**2
     for (let j = 0; j < n; j++) { // do j=1,n
       const x = 1 + j % l
-      const y = 1 + (j % ll) / l // 1+mod(j-1,ll)/l
+      const y = Math.floor(1 + (j % ll) / l) // 1+mod(j-1,ll)/l
       const z = Math.floor(1 + j / ll)
-      console.log("x, y, z :", x, y, z)
 
        if (x != 1) {f2[j]=f2[j]-f1[j-1]}
        if (x != l) {f2[j]=f2[j]-f1[j+1]}
@@ -461,12 +560,19 @@ function mulberry32(seed) {
   }
 }
 
-let mulberryRan = null
+function deterministicRan() {
+  return theRans[randex++]
+}
+
+let ranFunction = null
 
 function ran() {
-  // return theRans[randex++] ?? Math.random()
+  const result = ranFunction()
+  return result
+
+  // const result = theRans[randex++] ?? Math.random()
   // return Math.random()
-  return mulberryRan()
+  // return mulberryRan()
 }
 
   
@@ -513,20 +619,37 @@ function ran() {
 !multiply actual potential energy by escale !
 !-------------------------------------------!
 */
+
+function vpot2D(i) {
+  const yInt = Math.floor(i / l)
+  const xInt = i - yInt * l
+  const x = xInt / l
+  const y = yInt / l
+  vpot[i] = vpotF(x, y, 0)
+}
+
+function vpot3D(index) {
+  let i = index
+  const zInt = Math.floor(i / (l * l))
+  i -= zInt * l * l
+  const yInt = Math.floor(i / l)
+  i -= yInt * l
+  const xInt = i
+  const x = xInt / l
+  const y = yInt / l
+  const z = zInt / l
+  vpot[index] = vpotF(x, y, z)
+}
+
 function potentialenergy(escale) {
   const vpotLen = vpot.length
+  const vpotFunction = d == 2 ? vpot2D : vpot3D
   for (let i = 0; i < vpotLen; i++) {
-    const yInt = Math.floor(i / l)
-    const xInt = i - yInt * l
-    const x = xInt / l
-    const y = yInt / l
-    vpot[i] = vpotF(x, y)
+    vpotFunction(i)
   }
 
   vpot = vpot.multiplyScalar(escale)
-  for (let i = 0; i < vpotLen; i++) {
-    vpot[i] += 2 * d
-  }
+  vpot = vpot.addScalar(2 * d)
 
   //  real(8) :: escale
 

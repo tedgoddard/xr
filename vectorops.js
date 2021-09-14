@@ -13,6 +13,10 @@ export class Vector extends Array {
     return this.map(multiply(g))
   }
   
+  addScalar(c) {
+    return this.map(addScalar(c))
+  }
+
   multiplyScalar(c) {
     return this.map(multiplyScalar(c))
   }
@@ -57,6 +61,10 @@ export function multiply(g) {
 // f.map(multiplyScalar(c)) returns componentwise f * c
 export function multiplyScalar(c) {
   return y => y * c
+}
+
+export function addScalar(c) {
+  return y => y + c
 }
 
 // f.map(square) returns componentwise f * f

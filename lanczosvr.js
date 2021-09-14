@@ -7,52 +7,104 @@ const vrRoom = new VRRoom()
 const scene = vrRoom.scene
 let graphV = null
 let graphP = null
+let pointsSystem = null
+let shimmering = false
 
 let niter = 50
 let d = 2
 let l = 20
 let psiLen = l**d
 let squared = false
+let seed = null
+let dotThreshMin = 0
+let dotThreshMax = 20
+let dotThreshScale = 2
+
+let psi = null
+let eigs = null
+let vpot = null
+let escale = null
+let vpotScaled = null
+let psi2 = null
+
+window.diamond = (x, y) => Math.abs(x - 0.5) + Math.abs(y - 0.5)
+window.circle = (x, y) => (Math.sqrt((x - 0.5)**2 + (y - 0.5)**2))
+
+// (circle(x, y) - 0.3)**10
+// 100 - (20*circle(x, y) - 10)**2
+// 24 - 200*(circle(x, y) - 0.3)**2
+// Math.exp((circle(x, y) - 0.3)**2)
+
+//Dog dish
+// 30*Math.exp(-80*(circle(x, y) - 0.2)**2)
 
 const gui = new GUI()
 const guiParams = {
+  d: 3,
   E: 2,
   iterations: 30,
   subdivisions: 20,
   "^2": false,
   smooth: true,
-  V: "((x - 0.5)**2 + (y - 0.5)**2) * 50"
+  // V: "((x - 0.5)**2 + (y - 0.5)**2) * 50",
+  V: "((2*x - 1)**2 + (2*y - 1)**2 + (2*z - 1)**2) * 50",
+  shuffle: () => {
+    seed = parseInt(`${Math.random()}`.slice(2))
+    update()
+   },
+   shimmer: () => {
+    shimmering = !shimmering
+    shimmer()
+   },
+   dotThreshMin: 0,
+   dotThreshMax: 20,
+   dotThreshScale: 2
 }
+
+const bump = (x) => x + 1.0 * (Math.random() - 0.5)
 
 function update() {
   guiParams.subdivisions = Math.floor(guiParams.subdivisions)
+  d = guiParams.d
   l = guiParams.subdivisions
   niter = guiParams.iterations
   psiLen = l**d
   squared = guiParams['^2']
-  const vpotF = new Function('x', 'y', `return ${guiParams.V}`)
+  dotThreshMin = guiParams.dotThreshMin
+  dotThreshMax = guiParams.dotThreshMax
+  dotThreshScale = guiParams.dotThreshScale
+  const vpotF = new Function('x', 'y', 'z', `return ${guiParams.V}`)
   console.log("guiParams", guiParams)
-  setup({ d, niter, l, st: guiParams.E, vpotF})
+  setup({ d, niter, l, st: guiParams.E, vpotF, seed})
+  generate()
   draw()
 }
 
-gui.add(guiParams, 'E', 0, 20).onFinishChange( () => {
-  guiParams.E = Math.floor(guiParams.E)
-  update()
-})
-gui.add(guiParams, 'iterations', 1, 200).onFinishChange( () => {
-  guiParams.iterations = Math.floor(guiParams.iterations)
-  update()
-})
+gui.add(guiParams, 'd', 2, 3, 1).onFinishChange(update)
+gui.add(guiParams, 'E', 0, 20, 1).onFinishChange(update)
+gui.add(guiParams, 'iterations', 1, 200, 1).onFinishChange(update)
 gui.add(guiParams, 'smooth', false, true).onChange(update)
 gui.add(guiParams, '^2', false, true).onChange(update)
 gui.add(guiParams, 'V', '((x - 0.5)**2 + (y - 0.5)**2) * 50').onFinishChange(update)
-gui.add(guiParams, 'subdivisions', 1, 200).onFinishChange(update)
+gui.add(guiParams, 'subdivisions', 1, 200, 1).onFinishChange(update)
+gui.add(guiParams, 'shuffle')
+gui.add(guiParams, 'shimmer')
+gui.add(guiParams, 'dotThreshMin', 0, 30, 0.1).onFinishChange(update)
+gui.add(guiParams, 'dotThreshMax', 0, 30, 0.1).onFinishChange(update)
+gui.add(guiParams, 'dotThreshScale', 0, 10, 0.1).onFinishChange(update)
 
 function arrayIndex(length, stride, x, y) {
   const xIndex = Math.floor(x * (stride - 1))
   const yIndex = Math.floor(Math.floor(y * (length - 1)) / (stride)) * (stride)
   return xIndex + yIndex
+}
+
+function arrayIndex3D(length, stride, x, y, z) {
+  const square = stride * stride
+  const xIndex = Math.floor(x * (stride - 1))
+  const yIndex = Math.floor(Math.floor(y * (length - 1)) / (stride)) * (stride)
+  const ZIndex = Math.floor(Math.floor(y * (length - 1)) / (stride)) * (stride)
+  return xIndex + yIndex + zIndex
 }
 
 function unitCoords(length, stride, index) {
@@ -114,26 +166,85 @@ function normalize(psi) {
   return psi2.multiplyScalar(1 / norm)
 }
 
-function draw() {
-  const { psi, eigs, vpot, escale } = iterate()
+function generate() {
+  const result = iterate()
+  psi = result.psi
+  eigs = result.eigs
+  vpot = result.vpot
+  escale = result.escale
+  vpotScaled = vpot.addScalar(-2 * d).multiplyScalar(0.1 / escale)
+  psi2 = squared ? normalize(psi) : psi
+}
 
-  const vpotScaled = vpot.addScalar(-2 * d).multiplyScalar(0.1 / escale)
-  const psi2 = squared ? normalize(psi) : psi
+function shimmer() {
+  if (shimmering) {
+    setTimeout(shimmer, 50)
+  }
+  draw()
+}
+
+function draw() {
+  const scale = 5
 
   scene.remove(graphP)
   scene.remove(graphV)
-  const geometryV = new THREE.ParametricGeometry( parametricFunction({ f: vpotScaled, smooth: true }), 100, 100, true );
-  const materialV = new THREE.MeshPhongMaterial({ color: 0x444444, side: THREE.DoubleSide })
-  graphV = new THREE.Mesh(geometryV, materialV)
-  graphV.rotation.x = -vrRoom.halfPi
-  graphV.position.y = -2
-  scene.add(graphV)
+  scene.remove(pointsSystem)
 
-  const geometryP = new THREE.ParametricGeometry( parametricFunction({ f: psi2, scale: 5, smooth: guiParams.smooth }), 100, 100, true );
-  const materialP = new THREE.MeshStandardMaterial({ color: 0x993333, roughness: 0.5, flatShading: true, metalness: 0.5, opacity: 1.0, transparent: false, side: THREE.DoubleSide })
-  graphP = new THREE.Mesh(geometryP, materialP)
-  graphP.rotation.x = -vrRoom.halfPi
-  scene.add(graphP)
+  if (d == 2) {
+    const geometryP = new THREE.ParametricGeometry( parametricFunction({ f: psi2, scale, smooth: guiParams.smooth }), 100, 100, true );
+    const materialP = new THREE.MeshStandardMaterial({ color: 0x993333, roughness: 0.5, flatShading: true, metalness: 0.5, opacity: 1.0, transparent: false, side: THREE.DoubleSide })
+    graphP = new THREE.Mesh(geometryP, materialP)
+    graphP.rotation.x = -vrRoom.halfPi
+    scene.add(graphP)
+
+    const geometryV = new THREE.ParametricGeometry( parametricFunction({ f: vpotScaled, smooth: true }), 100, 100, true );
+    const materialV = new THREE.MeshPhongMaterial({ color: 0x444444, side: THREE.DoubleSide })
+    graphV = new THREE.Mesh(geometryV, materialV)
+    graphV.rotation.x = -vrRoom.halfPi
+    graphV.position.y = -2
+    scene.add(graphV)
+  }
+  if (d == 3) {
+    const pointsVertices = []
+    const pointsColors = []
+    const pointsSizes = []
+
+    const ll = l**2
+    for (let j = 0; j < psiLen; j++) { // do j=1,n
+      //ToDo make function to obtain coords
+      const x = 1 + j % l
+      const y = Math.floor(1 + (j % ll) / l) // 1+mod(j-1,ll)/l
+      const z = Math.floor(1 + j / ll)
+
+      //could take a gradient across the box to distribute the points "smoothly"
+      // const amplitude = vpotScaled[j]
+      const amplitude = psi2[j] * 10**dotThreshScale
+
+      if (amplitude < dotThreshMin) {
+        continue
+      }
+      if (amplitude > dotThreshMax) {
+        continue
+      }
+
+      const dotCount = Math.min(amplitude **2, 10)
+
+      for (let k = 0; k < dotCount; k++) {
+        pointsVertices.push(scale * bump(x) / l, scale * bump(y) / l, scale * bump(z) / l)
+        pointsSizes.push(0.01 * amplitude)
+        pointsColors.push(0.9, 0.6, 0.6)
+      }
+    }
+
+    const pointsGeometry = new THREE.BufferGeometry()
+    const particleShaderMaterial = vrRoom.particleShaderMaterial
+    pointsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(pointsVertices, 3).setUsage(THREE.DynamicDrawUsage))
+    pointsGeometry.setAttribute('color', new THREE.Float32BufferAttribute(pointsColors, 3).setUsage(THREE.DynamicDrawUsage))
+    pointsGeometry.setAttribute('size', new THREE.Float32BufferAttribute(pointsSizes, 1))
+    pointsSystem = new THREE.Points(pointsGeometry, particleShaderMaterial)
+    pointsSystem.position.x = -2
+    scene.add(pointsSystem)
+  }
 }
 
 update()
