@@ -7,7 +7,8 @@ const vrRoom = new VRRoom()
 const scene = vrRoom.scene
 let graphV = null
 let graphP = null
-let pointsSystem = null
+let pointsSystemP = null
+let pointsSystemV = null
 let shimmering = false
 
 let niter = 50
@@ -18,7 +19,6 @@ let squared = false
 let seed = null
 let dotThreshMin = 0
 let dotThreshMax = 20
-let dotThreshScale = 2
 
 let psi = null
 let eigs = null
@@ -48,6 +48,7 @@ const guiParams = {
   smooth: true,
   // V: "((x - 0.5)**2 + (y - 0.5)**2) * 50",
   V: "((2*x - 1)**2 + (2*y - 1)**2 + (2*z - 1)**2) * 50",
+  "show V": true,
   shuffle: () => {
     seed = parseInt(`${Math.random()}`.slice(2))
     update()
@@ -58,10 +59,12 @@ const guiParams = {
    },
    dotThreshMin: 0,
    dotThreshMax: 20,
-   dotThreshScale: 2
+   dotThreshScaleV: 2,
+   dotThreshScaleP: 2
 }
 
 const bump = (x) => x + 1.0 * (Math.random() - 0.5)
+const redBlue = (x) => x < 0 ? [0.6, 0.6, 0.9] : [0.9, 0.6, 0.6]
 
 function update() {
   guiParams.subdivisions = Math.floor(guiParams.subdivisions)
@@ -72,7 +75,6 @@ function update() {
   squared = guiParams['^2']
   dotThreshMin = guiParams.dotThreshMin
   dotThreshMax = guiParams.dotThreshMax
-  dotThreshScale = guiParams.dotThreshScale
   const vpotF = new Function('x', 'y', 'z', `return ${guiParams.V}`)
   console.log("guiParams", guiParams)
   setup({ d, niter, l, st: guiParams.E, vpotF, seed})
@@ -86,12 +88,14 @@ gui.add(guiParams, 'iterations', 1, 200, 1).onFinishChange(update)
 gui.add(guiParams, 'smooth', false, true).onChange(update)
 gui.add(guiParams, '^2', false, true).onChange(update)
 gui.add(guiParams, 'V', '((x - 0.5)**2 + (y - 0.5)**2) * 50').onFinishChange(update)
+gui.add(guiParams, 'show V', false, true).onChange(update)
 gui.add(guiParams, 'subdivisions', 1, 200, 1).onFinishChange(update)
 gui.add(guiParams, 'shuffle')
 gui.add(guiParams, 'shimmer')
 gui.add(guiParams, 'dotThreshMin', 0, 30, 0.1).onFinishChange(update)
 gui.add(guiParams, 'dotThreshMax', 0, 30, 0.1).onFinishChange(update)
-gui.add(guiParams, 'dotThreshScale', 0, 10, 0.1).onFinishChange(update)
+gui.add(guiParams, 'dotThreshScaleV', 0, 10, 0.1).onFinishChange(update)
+gui.add(guiParams, 'dotThreshScaleP', 0, 10, 0.1).onFinishChange(update)
 
 function arrayIndex(length, stride, x, y) {
   const xIndex = Math.floor(x * (stride - 1))
@@ -183,12 +187,58 @@ function shimmer() {
   draw()
 }
 
+function pointCloud(pointValues, { scale, dotThreshScale, colorFunction }) {
+  const pointsVertices = []
+  const pointsColors = []
+  const pointsSizes = []
+
+  const ll = l**2
+  for (let j = 0; j < psiLen; j++) { // do j=1,n
+    //ToDo make function to obtain coords
+    const x = 1 + j % l
+    const y = Math.floor(1 + (j % ll) / l) // 1+mod(j-1,ll)/l
+    const z = Math.floor(1 + j / ll)
+
+    //could take a gradient across the box to distribute the points "smoothly"
+    const value = pointValues[j]
+    const color = colorFunction(value)
+    const amplitude = Math.abs(value) * 10**dotThreshScale
+
+    if (amplitude < dotThreshMin) {
+      continue
+    }
+    if (amplitude > dotThreshMax) {
+      continue
+    }
+
+    const dotCount = Math.min(amplitude**2, 10)
+
+    for (let k = 0; k < dotCount; k++) {
+      pointsVertices.push(scale * bump(x) / l, scale * bump(y) / l, scale * bump(z) / l)
+      pointsSizes.push(0.01 * amplitude)
+      pointsColors.push(...color)
+    }
+  }
+
+  const pointsGeometry = new THREE.BufferGeometry()
+  const particleShaderMaterial = vrRoom.particleShaderMaterial
+  pointsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(pointsVertices, 3).setUsage(THREE.DynamicDrawUsage))
+  pointsGeometry.setAttribute('color', new THREE.Float32BufferAttribute(pointsColors, 3).setUsage(THREE.DynamicDrawUsage))
+  pointsGeometry.setAttribute('size', new THREE.Float32BufferAttribute(pointsSizes, 1))
+  return new THREE.Points(pointsGeometry, particleShaderMaterial)
+}
+
 function draw() {
   const scale = 5
 
   scene.remove(graphP)
   scene.remove(graphV)
-  scene.remove(pointsSystem)
+  scene.remove(pointsSystemP)
+  scene.remove(pointsSystemV)
+  graphP?.geometry.dispose()
+  graphV?.geometry.dispose()
+  pointsSystemP?.geometry.dispose()
+  pointsSystemV?.geometry.dispose()
 
   if (d == 2) {
     const geometryP = new THREE.ParametricGeometry( parametricFunction({ f: psi2, scale, smooth: guiParams.smooth }), 100, 100, true );
@@ -197,53 +247,28 @@ function draw() {
     graphP.rotation.x = -vrRoom.halfPi
     scene.add(graphP)
 
-    const geometryV = new THREE.ParametricGeometry( parametricFunction({ f: vpotScaled, smooth: true }), 100, 100, true );
-    const materialV = new THREE.MeshPhongMaterial({ color: 0x444444, side: THREE.DoubleSide })
-    graphV = new THREE.Mesh(geometryV, materialV)
-    graphV.rotation.x = -vrRoom.halfPi
-    graphV.position.y = -2
-    scene.add(graphV)
+    if (guiParams["show V"]) {
+      const geometryV = new THREE.ParametricGeometry( parametricFunction({ f: vpotScaled, smooth: true }), 100, 100, true );
+      const materialV = new THREE.MeshPhongMaterial({ color: 0x444444, side: THREE.DoubleSide })
+      graphV = new THREE.Mesh(geometryV, materialV)
+      graphV.rotation.x = -vrRoom.halfPi
+      graphV.position.y = -2
+      scene.add(graphV)
+    }
   }
   if (d == 3) {
-    const pointsVertices = []
-    const pointsColors = []
-    const pointsSizes = []
-
-    const ll = l**2
-    for (let j = 0; j < psiLen; j++) { // do j=1,n
-      //ToDo make function to obtain coords
-      const x = 1 + j % l
-      const y = Math.floor(1 + (j % ll) / l) // 1+mod(j-1,ll)/l
-      const z = Math.floor(1 + j / ll)
-
-      //could take a gradient across the box to distribute the points "smoothly"
-      // const amplitude = vpotScaled[j]
-      const amplitude = psi2[j] * 10**dotThreshScale
-
-      if (amplitude < dotThreshMin) {
-        continue
-      }
-      if (amplitude > dotThreshMax) {
-        continue
-      }
-
-      const dotCount = Math.min(amplitude **2, 10)
-
-      for (let k = 0; k < dotCount; k++) {
-        pointsVertices.push(scale * bump(x) / l, scale * bump(y) / l, scale * bump(z) / l)
-        pointsSizes.push(0.01 * amplitude)
-        pointsColors.push(0.9, 0.6, 0.6)
-      }
+    if (guiParams["show V"]) {
+      const colorFunction = x => [0.6, 0.6, 0.6]
+      const dotThreshScale = guiParams.dotThreshScaleV
+      pointsSystemV = pointCloud(vpotScaled, { scale, dotThreshScale, colorFunction })
+      pointsSystemV.position.x = -2
+      scene.add(pointsSystemV)
     }
-
-    const pointsGeometry = new THREE.BufferGeometry()
-    const particleShaderMaterial = vrRoom.particleShaderMaterial
-    pointsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(pointsVertices, 3).setUsage(THREE.DynamicDrawUsage))
-    pointsGeometry.setAttribute('color', new THREE.Float32BufferAttribute(pointsColors, 3).setUsage(THREE.DynamicDrawUsage))
-    pointsGeometry.setAttribute('size', new THREE.Float32BufferAttribute(pointsSizes, 1))
-    pointsSystem = new THREE.Points(pointsGeometry, particleShaderMaterial)
-    pointsSystem.position.x = -2
-    scene.add(pointsSystem)
+    const colorFunction = redBlue
+    const dotThreshScale = guiParams.dotThreshScaleP
+    pointsSystemP = pointCloud(psi2, { scale, dotThreshScale, colorFunction })
+    pointsSystemP.position.x = -2
+    scene.add(pointsSystemP)
   }
 }
 
