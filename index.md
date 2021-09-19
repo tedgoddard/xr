@@ -45,5 +45,5 @@ Adventures in Reality
 
 ### Numerical Schrödinger Equation (Lánczos Solution) VR
 
-[Quantum Lánczos VR](lanczosvr.html): Prototype of a 2D/3D Schrödinger Equation Solution based on [Anders Sandvik: Computational Physics](http://physics.bu.edu/py502/). Another work in progress.
+[Quantum Lánczos VR](lanczos.html): Prototype of a 2D/3D Schrödinger Equation Solution based on [Anders Sandvik: Computational Physics](http://physics.bu.edu/py502/). Another work in progress.
 
