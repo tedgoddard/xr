@@ -1,6 +1,8 @@
 // import { multiply, add, subtract, dot } from "./vectorops.js"
-// import * as math from "mathjs"
-import { Vector, dot } from "./vectorops.js"
+// import * as math from "./jsm/math.js"
+// import { Vector, dot } from "./vectorops.js"
+importScripts("./vectorops-legacy.js")
+importScripts("./js/math.js")
 
 //ported from http://physics.bu.edu/~py502/lectures4/examples/lanczos.f90 
 
@@ -28,8 +30,6 @@ import { Vector, dot } from "./vectorops.js"
  real(8), allocatable :: eig(:)
  real(8), allocatable :: vec(:,:)
 */
-
-
 
 
 let randex = 0
@@ -289,7 +289,8 @@ let delta = 1
 let escale = 1
 let vpot = null
 
-export function setup(options) {
+// export function setup(options) {
+function setup(options) {
   console.log("Maybe random", options.seed)
   const mulberrySeed = options.seed ? options.seed : 86212276011065758
   ranFunction = options.seed == -1 ? deterministicRan : mulberry32(mulberrySeed)
@@ -299,7 +300,7 @@ export function setup(options) {
   len = options.len ?? 3
   niter = options.niter ?? 50
   st = options.st ?? 4
-  vpotF = options.vpotF
+  vpotF = new Function('x', 'y', 'z', `return ${options.V}`)
 console.log(options)
   psiLen = l**d
   f0 = new Vector(l**d)
@@ -316,9 +317,13 @@ console.log(options)
   delta = len / l
   escale = 2 * delta**2  //! scale the energy so that the hopping t=1
   vpot = new Vector(l**d)
+
+  const type = "setup"
+  return { type }
 }
 
-export function iterate() {
+// export function iterate() {
+function iterate() {
   potentialenergy(escale)
 
   initstate(psi, l**d) 
@@ -335,7 +340,9 @@ export function iterate() {
   //psi indexes: i=1,l**d
   // const psi2 = psi.map( p => p**2 )
   // console.log("psi^2", psi2)
-  return { eig, psi, vpot, escale }
+
+  const type = "iterate"
+  return { type, eig, psi, vpot, escale }
 }
 
 /*
@@ -660,8 +667,20 @@ function potentialenergy(escale) {
 
 }
 
-export class Lanczos {
-   constructor() {
+const eventHandlers = {
+  setup: setup,
+  iterate: iterate
+}
+
+onmessage = function(event) {
+  const { data } = event
+  const result = eventHandlers[data.type](data.payload)
+  postMessage(result)
+}
+
+// export class Lanczos {
+class Lanczos {
+    constructor() {
      this.Vdefault = Vdefault
      this.xmax = xmax
    }

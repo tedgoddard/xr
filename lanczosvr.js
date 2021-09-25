@@ -1,10 +1,17 @@
 import * as THREE from './js/three.module.js'
 import { GUI } from './jsm/libs/dat.gui.module.js'
 import { VRRoom } from "./vrroom.js"
-import { setup, iterate } from "./lanczos.js"
+// import { setup, iterate } from "./lanczos.js"
+import { Vector } from "./vectorops.js"
 
 const vrRoom = new VRRoom()
 const scene = vrRoom.scene
+// const lanczosWorker = new Worker("./lanczos.js", { type: "module" })
+const lanczosWorker = new Worker("./lanczos.js")
+lanczosWorker.onmessage = function(event) {
+  handleWorkerOutput(event)
+}
+
 let graphV = null
 let graphP = null
 let pointsSystemP = null
@@ -67,7 +74,7 @@ const bump = (x) => x + 1.0 * (Math.random() - 0.5)
 const redBlue = (x) => x < 0 ? [0.6, 0.6, 0.9] : [0.9, 0.6, 0.6]
 
 function update() {
-  guiParams.subdivisions = Math.floor(guiParams.subdivisions)
+  // guiParams.subdivisions = Math.floor(guiParams.subdivisions)
   d = guiParams.d
   l = guiParams.subdivisions
   niter = guiParams.iterations
@@ -75,27 +82,39 @@ function update() {
   squared = guiParams['^2']
   dotThreshMin = guiParams.dotThreshMin
   dotThreshMax = guiParams.dotThreshMax
-  const vpotF = new Function('x', 'y', 'z', `return ${guiParams.V}`)
+  // const vpotF = new Function('x', 'y', 'z', `return ${guiParams.V}`)
+  const V = guiParams.V
   console.log("guiParams", guiParams)
-  setup({ d, niter, l, st: guiParams.E, vpotF, seed})
+  // setup({ d, niter, l, st: guiParams.E, vpotF, seed})
+  lanczosWorker.postMessage({
+    type: "setup",
+    payload: { d, niter, l, st: guiParams.E, V, seed }
+  })
   generate()
+  // draw()
+}
+
+function updateView() {
+  dotThreshMin = guiParams.dotThreshMin
+  dotThreshMax = guiParams.dotThreshMax
+
   draw()
 }
 
 gui.add(guiParams, 'd', 2, 3, 1).onFinishChange(update)
 gui.add(guiParams, 'E', 0, 20, 1).onFinishChange(update)
 gui.add(guiParams, 'iterations', 1, 200, 1).onFinishChange(update)
-gui.add(guiParams, 'smooth', false, true).onChange(update)
+gui.add(guiParams, 'smooth', false, true).onChange(updateView)
 gui.add(guiParams, '^2', false, true).onChange(update)
 gui.add(guiParams, 'V', '((x - 0.5)**2 + (y - 0.5)**2) * 50').onFinishChange(update)
-gui.add(guiParams, 'show V', false, true).onChange(update)
+gui.add(guiParams, 'show V', false, true).onChange(updateView)
 gui.add(guiParams, 'subdivisions', 1, 200, 1).onFinishChange(update)
 gui.add(guiParams, 'shuffle')
 gui.add(guiParams, 'shimmer')
-gui.add(guiParams, 'dotThreshMin', 0, 30, 0.1).onFinishChange(update)
-gui.add(guiParams, 'dotThreshMax', 0, 30, 0.1).onFinishChange(update)
-gui.add(guiParams, 'dotThreshScaleV', 0, 10, 0.1).onFinishChange(update)
-gui.add(guiParams, 'dotThreshScaleP', 0, 10, 0.1).onFinishChange(update)
+gui.add(guiParams, 'dotThreshMin', 0, 30, 0.1).onChange(updateView)
+gui.add(guiParams, 'dotThreshMax', 0, 30, 0.1).onChange(updateView)
+gui.add(guiParams, 'dotThreshScaleV', 0, 10, 0.1).onChange(updateView)
+gui.add(guiParams, 'dotThreshScaleP', 0, 10, 0.1).onChange(updateView)
 
 function arrayIndex(length, stride, x, y) {
   const xIndex = Math.floor(x * (stride - 1))
@@ -171,13 +190,22 @@ function normalize(psi) {
 }
 
 function generate() {
-  const result = iterate()
-  psi = result.psi
-  eigs = result.eigs
-  vpot = result.vpot
+  // const result = iterate()
+  lanczosWorker.postMessage({ type: "iterate" })
+}
+
+function handleWorkerOutput(event) {
+  const result = event.data
+  if (result.type != "iterate") {
+    return
+  }
+  psi = new Vector(result.psi)
+  eigs = new Vector(result.eigs)
+  vpot = new Vector(result.vpot)
   escale = result.escale
   vpotScaled = vpot.addScalar(-2 * d).multiplyScalar(0.1 / escale)
   psi2 = squared ? normalize(psi) : psi
+  draw()
 }
 
 function shimmer() {
