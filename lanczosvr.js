@@ -22,7 +22,6 @@ let niter = 50
 let d = 2
 let l = 20
 let psiLen = l**d
-let squared = false
 let seed = null
 let dotThreshMin = 0
 let dotThreshMax = 20
@@ -55,10 +54,13 @@ const guiParams = {
   smooth: true,
   // V: "((x - 0.5)**2 + (y - 0.5)**2) * 50",
   V: "((2*x - 1)**2 + (2*y - 1)**2 + (2*z - 1)**2) * 50",
-  "show V": true,
+  "show V": false,
   shuffle: () => {
     seed = parseInt(`${Math.random()}`.slice(2))
     update()
+   },
+   continue: () => {
+    generate()
    },
    shimmer: () => {
     shimmering = !shimmering
@@ -66,8 +68,8 @@ const guiParams = {
    },
    dotThreshMin: 0,
    dotThreshMax: 20,
-   dotThreshScaleV: 2,
-   dotThreshScaleP: 2
+   dotThreshScaleV: 0,
+   dotThreshScaleP: 0
 }
 
 const bump = (x) => x + 1.0 * (Math.random() - 0.5)
@@ -79,7 +81,6 @@ function update() {
   l = guiParams.subdivisions
   niter = guiParams.iterations
   psiLen = l**d
-  squared = guiParams['^2']
   dotThreshMin = guiParams.dotThreshMin
   dotThreshMax = guiParams.dotThreshMax
   // const vpotF = new Function('x', 'y', 'z', `return ${guiParams.V}`)
@@ -103,18 +104,19 @@ function updateView() {
 
 gui.add(guiParams, 'd', 2, 3, 1).onFinishChange(update)
 gui.add(guiParams, 'E', 0, 20, 1).onFinishChange(update)
-gui.add(guiParams, 'iterations', 1, 200, 1).onFinishChange(update)
+gui.add(guiParams, 'iterations', 1, 100, 1).onFinishChange(update)
 gui.add(guiParams, 'smooth', false, true).onChange(updateView)
-gui.add(guiParams, '^2', false, true).onChange(update)
+gui.add(guiParams, '^2', false, true).onChange(updateView)
 gui.add(guiParams, 'V', '((x - 0.5)**2 + (y - 0.5)**2) * 50').onFinishChange(update)
 gui.add(guiParams, 'show V', false, true).onChange(updateView)
-gui.add(guiParams, 'subdivisions', 1, 200, 1).onFinishChange(update)
+gui.add(guiParams, 'subdivisions', 1, 100, 1).onFinishChange(update)
 gui.add(guiParams, 'shuffle')
+gui.add(guiParams, 'continue')
 gui.add(guiParams, 'shimmer')
-gui.add(guiParams, 'dotThreshMin', 0, 30, 0.1).onChange(updateView)
-gui.add(guiParams, 'dotThreshMax', 0, 30, 0.1).onChange(updateView)
-gui.add(guiParams, 'dotThreshScaleV', 0, 10, 0.1).onChange(updateView)
-gui.add(guiParams, 'dotThreshScaleP', 0, 10, 0.1).onChange(updateView)
+// gui.add(guiParams, 'dotThreshMin', 0, 30, 0.1).onChange(updateView)
+// gui.add(guiParams, 'dotThreshMax', 0, 30, 0.1).onChange(updateView)
+// gui.add(guiParams, 'dotThreshScaleV', 0, 10, 0.1).onChange(updateView)
+// gui.add(guiParams, 'dotThreshScaleP', 0, 10, 0.1).onChange(updateView)
 
 function arrayIndex(length, stride, x, y) {
   const xIndex = Math.floor(x * (stride - 1))
@@ -196,6 +198,14 @@ function generate() {
 
 function handleWorkerOutput(event) {
   const result = event.data
+  if (result.type == "step") {
+    psi = new Vector(result.psi)
+    vpot = new Vector(result.vpot)
+    escale = result.escale
+    vpotScaled = vpot.addScalar(-2 * d).multiplyScalar(0.1 / escale)
+    draw()
+    return
+  }
   if (result.type != "iterate") {
     return
   }
@@ -204,7 +214,6 @@ function handleWorkerOutput(event) {
   vpot = new Vector(result.vpot)
   escale = result.escale
   vpotScaled = vpot.addScalar(-2 * d).multiplyScalar(0.1 / escale)
-  psi2 = squared ? normalize(psi) : psi
   draw()
 }
 
@@ -219,6 +228,17 @@ function pointCloud(pointValues, { scale, dotThreshScale, colorFunction }) {
   const pointsVertices = []
   const pointsColors = []
   const pointsSizes = []
+
+  if (dotThreshScale == 0) {
+    const pointValuesMax = Math.abs(pointValues.max())
+    const pointValuesMin = Math.abs(pointValues.min())
+    const pointValuesExtreme = Math.max(pointValuesMax, pointValuesMin)
+    dotThreshScale = Math.log(10 / pointValuesExtreme) / Math.log(10)
+    const squared = guiParams['^2']
+    if (squared) {
+      dotThreshScale *= 2
+    }
+  }
 
   const ll = l**2
   for (let j = 0; j < psiLen; j++) { // do j=1,n
@@ -267,6 +287,9 @@ function draw() {
   graphV?.geometry.dispose()
   pointsSystemP?.geometry.dispose()
   pointsSystemV?.geometry.dispose()
+
+  const squared = guiParams['^2']
+  psi2 = squared ? normalize(psi) : psi
 
   if (d == 2) {
     const geometryP = new THREE.ParametricGeometry( parametricFunction({ f: psi2, scale, smooth: guiParams.smooth }), 100, 100, true );

@@ -318,20 +318,29 @@ console.log(options)
   escale = 2 * delta**2  //! scale the energy so that the hopping t=1
   vpot = new Vector(l**d)
 
+  potentialenergy(escale)
+  initstate(psi, l**d)
+
   const type = "setup"
   return { type }
 }
 
 // export function iterate() {
 function iterate() {
-  potentialenergy(escale)
+  // potentialenergy(escale)
 
-  initstate(psi, l**d) 
+  // initstate(psi, l**d)
+
+  const start = Date.now()
+
   lanczos1(l**d, niter, psi, eig, vec)
+  console.log("lanczos1 took", Date.now() - start)
+
   const vec1 = new Vector(vec.map(v => v[st])).multiplyScalar(-1.0)
   // console.log("psi pre vec", st, vec)
   // console.log("psi pre vec1", vec1)
   lanczos2(l**d, niter, vec1) //vec(:,st)  //multiply -1 just to check for now
+  console.log("lanczos2 took", Date.now() - start)
 
   //eig indexes: 0, niter-1
   const eigscale = eig.map( e => e / escale )
@@ -392,6 +401,9 @@ function lanczos1(n, niter, p0) {
       f1 = f2.clone()
       // console.log("wat", "CHECK:", [m, f0[0], f1[0], f2[0]].join("      "))
       // console.log("CHECK:", [m, f0[0], f1[0], f2[0]].join("      "))
+
+      // const type = "step"
+      // postMessage({ type, psi: f1, vpot, escale })
    }
    diatri(niter)
 }
@@ -460,6 +472,9 @@ function lanczos2(n, niter, vec1) {
       f0 = f1.clone()
       f1 = f2.clone()
       // console.log("L2 CHECK:", [m, f0[0], f1[0], f2[0]].join("      "))
+
+      const type = "step"
+      postMessage({ type, psi, vpot, escale })
    }
 }
 

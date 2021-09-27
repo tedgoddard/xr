@@ -41,6 +41,14 @@ export class Vector extends Array {
     return dot(this, this)
   }
 
+  max() {
+    return max(this)
+  }
+
+  min() {
+    return min(this)
+  }
+
   copy(v) {
     this.forEach((x, i) => v[i] = x)
   }
@@ -84,4 +92,12 @@ export function subtract(g) {
 
 export function dot(u, v) {
   return u.reduce( (total, next, i) => total + u[i] * v[i], 0 )
+}
+
+function max(u) {
+  return u.reduce( (total, next) => Math.max(total, next), Number.MIN_VALUE)
+}
+
+function min(u) {
+  return u.reduce( (total, next) => Math.min(total, next), Number.MAX_VALUE)
 }
