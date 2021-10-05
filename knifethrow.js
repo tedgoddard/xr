@@ -1,6 +1,6 @@
 import * as THREE from './js/three.module.js';
 import { BoxLineGeometry } from './jsm/BoxLineGeometry.js';
-import { VRButton } from './jsm/VRButton.js';
+import { VRButton } from './jsm/webxr/VRButton.js';
 import { XRControllerModelFactory } from './jsm/webxr/XRControllerModelFactory.js';
 import { GLTFLoader } from './jsm/loaders/GLTFLoader.js'
 import { OBJLoader } from './jsm/loaders/OBJLoader.js'
