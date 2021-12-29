@@ -2,12 +2,6 @@ class VRButton {
 
 	static createButton( renderer, options ) {
 
-		if ( options ) {
-
-			console.error( 'THREE.VRButton: The "options" parameter has been removed. Please set the reference space type via renderer.xr.setReferenceSpaceType() instead.' );
-
-		}
-
 		const button = document.createElement( 'button' );
 
 		function showEnterVR( /*device*/ ) {
@@ -15,7 +9,9 @@ class VRButton {
 			let currentSession = null;
 
 			async function onSessionStarted( session ) {
-
+				if (options && options.onSessionStarted) {
+					options.onSessionStarted(session)
+				}
 				session.addEventListener( 'end', onSessionEnded );
 
 				await renderer.xr.setSession( session );

@@ -51,6 +51,7 @@ let player = null
 let targetMesh = null
 let helvetiker = null
 let showControllerRays = true
+let initialSession = null
 
 // const knifeColor = 0x303030
 const knifeColor = 0x303030
@@ -439,6 +440,7 @@ function init(options = {}) {
   window.addEventListener( 'resize', onWindowResize, false );
 
   const onSessionStarted = (session) => {
+    initialSession = session
     thump.context.resume()
     scuff.context.resume()
     ar15n.forEach( sound => sound.context.resume() )
@@ -448,8 +450,8 @@ function init(options = {}) {
     }
   }
 
-  renderer.xr.addEventListener("sessionstart", onSessionStarted)
-  document.body.appendChild(VRButton.createButton(renderer))
+  // renderer.xr.addEventListener("sessionstart", onSessionStarted)
+  document.body.appendChild(VRButton.createButton(renderer, { onSessionStarted }))
 
 }
 
@@ -928,6 +930,10 @@ export class VRRoom {
 
   get controller2() {
     return controller2
+  }
+
+  get session() {
+    return initialSession
   }
 
   async loadTexture(image) {
