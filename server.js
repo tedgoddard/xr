@@ -2,6 +2,7 @@ const http = require('http')
 const https = require('https')
 const fs = require('fs')
 const express = require('express')
+const serveIndex = require('serve-index')
 
 // openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -nodes -days 365
 
@@ -16,6 +17,7 @@ const options = {
   passphrase
 }
 
+app.use(serveIndex("./"))
 app.use(express.static("./"))
 
 http.createServer(options, app).listen(port)
