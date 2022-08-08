@@ -6,6 +6,9 @@ import { GLTFLoader } from './jsm/loaders/GLTFLoader.js'
 import { OBJLoader } from './jsm/loaders/OBJLoader.js'
 import { MTLLoader } from './jsm/loaders/MTLLoader.js'
 import { OrbitControls } from './jsm/controls/OrbitControls.js'
+import { PointerLockControls } from './jsm/controls/PointerLockControls.js'
+import { PathShape } from './PathShape.js'
+import { HAND } from './hand.js'
 
 // import WebXRPolyfill from './jsm/webxr-polyfill.module.js'
 
@@ -13,7 +16,8 @@ import { OrbitControls } from './jsm/controls/OrbitControls.js'
 //   const polyfill = new WebXRPolyfill()
 // }
 
-var clock = new THREE.Clock();
+let clock = new THREE.Clock()
+
 const loader = new GLTFLoader()
 const audioListener = new THREE.AudioListener()
 const audioLoader = new THREE.AudioLoader()
@@ -47,6 +51,7 @@ let player = null
 let targetMesh = null
 let helvetiker = null
 let showControllerRays = true
+let initialSession = null
 
 // const knifeColor = 0x303030
 const knifeColor = 0x303030
@@ -71,7 +76,65 @@ const squeezeListeners = []
 const squeezeEndListeners = []
 const renderListeners = []
 const sessionCallbackListeners = []
+
+let pointer = new THREE.Vector2()
+let onUpPosition = new THREE.Vector2()
+let onDownPosition = new THREE.Vector2()
+let pointerEventPosition = new THREE.Vector2()
+const keyState = { }
+
+const pointerUpListeners = []
+const pointerDownListeners = []
+const pointerMoveListeners = []
+const pointerDownObjects = []
+const pointerMoveObjects = []
+const pointerUpObjects = []
+
 let moveListener = move => move
+
+const squareSize = 1
+const squareData = new Uint8Array(3 * squareSize * squareSize).fill(255)
+const squareTexture = new THREE.DataTexture(squareData, squareSize, squareSize, THREE.RGBFormat)
+
+const particleVertexShader = `
+  attribute float size;
+  varying vec3 vColor;
+
+  void main() {
+    vColor = color;
+    vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+    gl_PointSize = size * ( 300.0 / -mvPosition.z );
+    gl_Position = projectionMatrix * mvPosition;
+  }
+`
+
+const particleFragmentShader = `
+  uniform sampler2D pointTexture;
+  varying vec3 vColor;
+
+  void main() {
+    gl_FragColor = vec4( vColor, 1.0 );
+    gl_FragColor = gl_FragColor * texture2D( pointTexture, gl_PointCoord );
+  }
+`
+
+export const red = new THREE.MeshPhongMaterial( { color: 0xFF0000, flatShading: false, side: THREE.DoubleSide } )
+export const ivory = new THREE.MeshPhongMaterial( { color: 0xFFFFF0, flatShading: false, side: THREE.DoubleSide } )
+export const ebony = new THREE.MeshPhongMaterial( { color: 0x000000, flatShading: false, side: THREE.DoubleSide } )
+
+const particleShaderUniforms = {
+  pointTexture: { value: squareTexture }
+}
+
+const particleShaderMaterial = new THREE.ShaderMaterial({
+  uniforms: particleShaderUniforms,
+  vertexShader: particleVertexShader,
+  fragmentShader: particleFragmentShader,
+  // blending: THREE.AdditiveBlending,
+  depthTest: true,
+  transparent: true,
+  vertexColors: true
+})
 
 function addController(scene, controller) {
 
@@ -108,12 +171,112 @@ function addController(scene, controller) {
   player.add(controller)
 }
 
-function setupControls(camera, renderer) {
-  controls = new OrbitControls(camera, renderer.domElement)
-  controls.enableDamping = true;
-  controls.dampingFactor = 0.05;
-  controls.screenSpacePanning = false;
+function onKeyDown(event) {
+  keyState[event.code] = true
 }
+
+function onKeyUp(event) {
+  keyState[event.code] = false
+}
+
+document.addEventListener('keydown', onKeyDown)
+document.addEventListener('keyup', onKeyUp)
+
+//   switch ( event.code ) {
+
+//     case 'ArrowUp':
+//     case 'KeyW':
+//       moveForward = true;
+//       break;
+
+//     case 'ArrowLeft':
+//     case 'KeyA':
+//       moveLeft = true;
+//       break;
+
+//     case 'ArrowDown':
+//     case 'KeyS':
+//       moveBackward = true;
+//       break;
+
+//     case 'ArrowRight':
+//     case 'KeyD':
+//       moveRight = true;
+//       break;
+
+//     case 'Space':
+//       if ( canJump === true ) velocity.y += 350;
+//       canJump = false;
+//       break;
+
+//   }
+
+// };
+
+
+
+const setupControls = {
+  orbitControls: (camera, renderer) => {
+    controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true
+    controls.dampingFactor = 0.05
+    controls.screenSpacePanning = false
+  },
+  pointerLockControls: (camera, renderer, body) => {
+    controls = new PointerLockControls(camera, body)
+    scene.add(controls.getObject())
+  }
+}
+
+function onPointerDown(event) {
+  onPointerEvent(pointerDownListeners, pointerDownObjects, event)
+
+//   onDownPosition.x = event.clientX
+//   onDownPosition.y = event.clientY
+//   raycaster.setFromCamera(pointer, camera)
+//   const intersects = raycaster.intersectObjects(pointerDownObjects, true)
+// console.log("DOWN INTERSECT?", pointer, pointerDownObjects, intersects)
+//   for (const listener of pointerDownListeners) {
+//     listener(onDownPosition, intersects)
+//   }
+}
+
+function onPointerEvent(listeners, objects, event) {
+  pointerEventPosition.x = event.clientX
+  pointerEventPosition.y = event.clientY
+
+  raycaster.setFromCamera(pointer, camera)
+  const intersects = raycaster.intersectObjects(objects, true)
+  for (const listener of listeners) {
+    listener(pointer, intersects, event)
+  }
+}
+
+function onPointerUp(event) {
+  // onUpPosition.x = event.clientX
+  // onUpPosition.y = event.clientY
+  // for (const listener of pointerUpListeners) {
+  //   listener(onUpPosition)
+  // }
+  onPointerEvent(pointerUpListeners, pointerUpObjects, event)
+}
+
+function onPointerMove(event) {
+  pointer.x = (event.clientX / window.innerWidth) * 2 - 1
+  pointer.y = -(event.clientY / window.innerHeight) * 2 + 1
+  onPointerEvent(pointerMoveListeners, pointerMoveObjects, event)
+
+  // raycaster.setFromCamera(pointer, camera)
+  // const intersects = raycaster.intersectObjects(pointerMoveObjects, true)
+
+  // for (const listener of pointerMoveListeners) {
+  //   listener(pointer, intersects)
+  // }
+}
+
+document.addEventListener('pointerdown', onPointerDown, false)
+document.addEventListener('pointerup', onPointerUp, false)
+document.addEventListener('pointermove', onPointerMove, false )
 
 function init(options = {}) {
 
@@ -126,6 +289,7 @@ function init(options = {}) {
   }
   player = new THREE.Object3D()
   player.userData.velocity = new THREE.Vector3()
+  player.userData.direction = new THREE.Vector3()
   scene.add(player)
 
   const cameraOptions = options.camera || { fov: 50, near: 0.01, far: 50 }
@@ -231,8 +395,10 @@ function init(options = {}) {
   //   }
   // }
 
-  container.appendChild( renderer.domElement );
-  setupControls(camera, renderer)
+  container.appendChild(renderer.domElement)
+  const controlSetup = setupControls[options.controls] ?? setupControls.orbitControls
+  console.log({controlSetup})
+  controlSetup(camera, renderer, document.body)
 
   //controller models
   controller1 = renderer.xr.getController(0)
@@ -273,20 +439,19 @@ function init(options = {}) {
 
   window.addEventListener( 'resize', onWindowResize, false );
 
-  const buttonOptions = {
-    onSessionStarted: (session) => {
-      console.log("click")
-      thump.context.resume()
-      scuff.context.resume()
-      ar15n.forEach( sound => sound.context.resume() )
-      vintorez.forEach( sound => sound.context.resume() )
-      for (const listener of sessionCallbackListeners) {
-        listener(session)
-      }
+  const onSessionStarted = (session) => {
+    initialSession = session
+    thump.context.resume()
+    scuff.context.resume()
+    ar15n.forEach( sound => sound.context.resume() )
+    vintorez.forEach( sound => sound.context.resume() )
+    for (const listener of sessionCallbackListeners) {
+      listener(session)
     }
   }
-  // document.body.appendChild( VRButton.createButton( renderer, buttonOptions ) );
-  document.body.appendChild( VRButton.createButton( renderer, buttonOptions ) );
+
+  // renderer.xr.addEventListener("sessionstart", onSessionStarted)
+  document.body.appendChild(VRButton.createButton(renderer, { onSessionStarted }))
 
 }
 
@@ -350,6 +515,9 @@ function handleController(time, controller) {
     const hand = motionController.xrInputSource.handedness
     controller.userData.hand = hand
     const thumbStick = motionController.components["xr-standard-thumbstick"]
+    if (!thumbStick) {
+      return
+    }
     const values = thumbStick.values
     if (hand == "left") {
       const xrCamera = renderer.xr.getCamera(camera)
@@ -469,9 +637,7 @@ function handleController(time, controller) {
 
 
 function animate() {
-
-  renderer.setAnimationLoop( render );
-
+  renderer.setAnimationLoop(render)
 }
 
 function stickKnife(knifeWorld) {
@@ -632,6 +798,14 @@ const getMethods = (obj) => {
   return [...properties.keys()].filter(item => typeof obj[item] === 'function')
 }
 
+export function projectMouse(z, position) {
+  const cameraPosition = camera.position.clone()
+  const v = new THREE.Vector3(position.x, position.y, 0).unproject(camera)
+  v.sub(cameraPosition).normalize()
+  const d = -1 * (cameraPosition.z - z) / v.z
+  return cameraPosition.add(v.multiplyScalar(d))
+}
+
 export function logFlash(text, time = 1) {
   let cameraDirection = camera.getWorldDirection(new THREE.Vector3())
   // const cameraPosition = camera.position.clone()
@@ -662,7 +836,7 @@ async function loadFont(fontName, fontWeight = "regular") {
   })
 }
 
-async function ensureHelvetiker() {
+export async function ensureHelvetiker() {
   if (!helvetiker) {
     helvetiker = await loadFont("helvetiker")
   }
@@ -717,6 +891,7 @@ export class VRRoom {
   constructor(options = { }) {
     init(options)
     animate()
+    this.THREE = THREE
     this.scene = scene
     this.camera = camera
     this.renderer = renderer
@@ -725,21 +900,24 @@ export class VRRoom {
     this.halfPi = halfPi
     this.twoPi = twoPi
     this.gravity = gravity
+    this.particleShaderMaterial = particleShaderMaterial
     this.raycaster = raycaster
+    this.pointerDownObjects = pointerDownObjects
+    this.pointerMoveObjects = pointerMoveObjects
+    this.pointerUpObjects = pointerUpObjects
+    this.controls = controls
     this.raycastIntersect = raycastIntersect
     this.intersects = intersects
     this.hapticPulse = hapticPulse
     this.makeLabel = makeLabel
     this.sounds = { thump, scuff, ar15n, vintorez }
     applyGravity = options.gravity
-    if (window.XRHand) {
-      this.fingers = [
-        XRHand.INDEX_PHALANX_INTERMEDIATE,
-        XRHand.MIDDLE_PHALANX_INTERMEDIATE,
-        XRHand.RING_PHALANX_INTERMEDIATE,
-        XRHand.LITTLE_PHALANX_INTERMEDIATE
-      ]
-    }
+    this.fingers = [
+      HAND.INDEX_PHALANX_INTERMEDIATE,
+      HAND.MIDDLE_PHALANX_INTERMEDIATE,
+      HAND.RING_PHALANX_INTERMEDIATE,
+      HAND.LITTLE_PHALANX_INTERMEDIATE
+    ]
   }
 
   set controllerDecorator(callback) {
@@ -752,6 +930,10 @@ export class VRRoom {
 
   get controller2() {
     return controller2
+  }
+
+  get session() {
+    return initialSession
   }
 
   async loadTexture(image) {
@@ -780,25 +962,44 @@ export class VRRoom {
     })
   }
 
-  async loadText(text, options) {
+  getPointsBounds(points) {
+    const topLeft = new THREE.Vector2()
+    const bottomRight = new THREE.Vector2()
+    for (const u of points) {
+      topLeft.x = Math.min(topLeft.x, u.x)
+      topLeft.y = Math.max(topLeft.y, u.y)
+      bottomRight.x = Math.max(bottomRight.x, u.x)
+      bottomRight.y = Math.min(bottomRight.y, u.y)
+    }
+    return [topLeft, bottomRight]
+  }
+
+  getShapeBounds(shape, divisions) {
+    const points = shape.extractPoints(divisions)
+    return this.getPointsBounds(points.shape)
+  }
+
+  getShapesBounds(shapes, divisions) {
+    const shapeBounds = shapes.map(shape => this.getShapeBounds(shape, divisions))
+    return this.getPointsBounds(shapeBounds.flat())
+  }
+
+  makeText(text, options) {
     const defaults = { 
       size: 0.5,
       height: 0.1,
       curveSegments: 8,
       bevelThickness: 0.1,
       bevelSize: 0.01,
-      bevelEnabled: true
+      bevelEnabled: true,
+      font: helvetiker,
     }
     options = { ...defaults, ...options }
-    if (!options.font) {
-      await ensureHelvetiker()
-      options.font = helvetiker
-    }
+  console.log(options)
     let textGeo = new THREE.TextGeometry(text, options)
     textGeo.computeBoundingBox()
     var centerOffset = - 0.5 * (textGeo.boundingBox.max.x - textGeo.boundingBox.min.x)
 
-    textGeo = new THREE.BufferGeometry().fromGeometry(textGeo)
     const materials = options.materials || [
       new THREE.MeshPhongMaterial( { color: 0x888888, flatShading: false } ), // front
       new THREE.MeshPhongMaterial( { color: 0x888888, flatShading: false } ) // side
@@ -809,6 +1010,91 @@ export class VRRoom {
     mesh.position.x = centerOffset / 2
     mesh.rotation.y = Math.PI * 2
     return mesh
+  }
+
+  makeTextShapes(text, options) {
+    const defaults = {
+      size: 100,
+      font: helvetiker,
+    }
+    options = { ...defaults, ...options }
+    return options.font.generateShapes(text, options.size)
+
+  }
+
+
+  makeTextTile(text, options = {}) {
+    const tileMaterial = options.material ?? ivory
+    const tileBackMaterial = options.backMaterial ?? ebony
+    const size = options.size ?? 0.3
+    const minHeight = (options.minHeight ?? 0) / 2
+    const minWidth = (options.minWidth ?? 0) / 2
+    const name = options.name ?? text
+console.log("MAKE TEXT TILE", text, text.length)
+    const textLength = text.length
+    const textShapes = this.makeTextShapes(text, { size: 0.3 })
+    const textBounds = this.getShapesBounds(textShapes)
+    const textSize = textBounds[1].x
+console.log("TEXT BOUNDS", textBounds)
+    const w = Math.max(textSize + size, minWidth)
+    const hPad = size / 3.0
+    const hMin = Math.min(textBounds[1].y - hPad, -minHeight)
+    const hMax = Math.max(textBounds[0].y + hPad, minHeight)
+console.log({hMin, hMax})
+    const squareCoords = [[-size, hMax], [w, hMax], [w, hMin], [-size, hMin], [-size, hMax]]
+    const squareVectors = squareCoords.map( u => new THREE.Vector2(...u) )
+    const squareShape = new THREE.Shape(squareVectors)
+    const squareBack = squareShape.clone()
+    const squareTotal = [squareShape]
+
+    for (const char of textShapes) {
+      squareShape.holes.push(char)
+      for (const charHole of char.holes) {
+        squareTotal.push(new PathShape(charHole))
+      }
+    }
+
+    const squareGeometry = new THREE.ExtrudeGeometry(squareTotal, {
+      depth: 0.1,
+      bevelEnabled: false
+    })
+    const tileBackGeometry = new THREE.ExtrudeGeometry(squareBack, {
+      depth: 0.1,
+      bevelEnabled: false
+    })
+
+    const squareMesh = new THREE.Mesh(squareGeometry, tileMaterial)
+    const tileBackMesh = new THREE.Mesh(tileBackGeometry, tileBackMaterial)
+
+    const tile = new THREE.Object3D()
+    // tileBackMesh.position.set(textLength / 2, 0, -0.1)
+    tileBackMesh.position.set(0, 0, -0.1)
+    tileBackMesh.position.x = 0.3 // why?
+    tile.add(tileBackMesh)
+    tileBackMesh.userData.parent = tile
+
+    // squareMesh.position.set(textLength / 2, 0, 0)
+    squareMesh.position.x = 0.3 // why?
+    tile.add(squareMesh)
+    squareMesh.userData.parent = tile
+    tile.userData.text = text
+    tile.name = name
+
+//  const marker = new THREE.Mesh(new THREE.SphereGeometry(0.1, 0.1, 0.1), red)
+    // const marker = new THREE.Mesh(new THREE.BoxGeometry(size + w, hMax - hMin, 0.3), red)
+    // marker.position.x = (size + w) / 2 - 0.3
+    // marker.position.y = -hMin
+    // tile.add(marker)
+    return tile
+  }
+
+
+  async loadText(text, options = { }) {
+    if (!options.font) {
+      await ensureHelvetiker()
+      options.font = helvetiker
+    }
+    return this.makeText(text, options)
   }
 
   addSelectListener(listener) {
@@ -833,6 +1119,19 @@ export class VRRoom {
 
   onSessionStarted(callback) {
     sessionCallbackListeners.push(callback)
+  }
+
+  //maybe call this onMouseUp or unify mouse and vr pointers
+  onPointerUp(callback) {
+    pointerUpListeners.push(callback)
+  }
+
+  onPointerDown(callback) {
+    pointerDownListeners.push(callback)
+  }
+
+  onPointerMove(callback) {
+    pointerMoveListeners.push(callback)
   }
 
   playSound(sound) {

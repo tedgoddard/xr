@@ -2,6 +2,7 @@ import { VRRoom } from "./vrroom.js"
 import * as THREE from './js/three.module.js'
 import { TypedArrayUtils } from './jsm/utils/TypedArrayUtils.js'
 import { worm, path, dump } from "./maze.js"
+import { HAND } from "./hand.js"
 
 const vrRoom = new VRRoom({ disableBackground: true, disableGrid: true, gravity: true })
 const scene = vrRoom.scene
@@ -36,6 +37,10 @@ const yellowMaterial = new THREE.MeshBasicMaterial({ color: 0xFFFF00 })
 const tanMaterial = new THREE.MeshLambertMaterial({ color: 0x666666, side: THREE.DoubleSide })
 const shinyWhiteMaterial = new THREE.MeshPhongMaterial({ color: 0xEEEEEE, shininess: 70, flatShading: true, specular: 0xEEDDDD, side: THREE.DoubleSide })
 const greyMaterial = new THREE.MeshLambertMaterial({ color: 0x222222 })
+
+const radii = new Float32Array(25)
+const positions = new Float32Array(16*25)
+const theMatrix = new THREE.Matrix4()
 
 async function loadTextures() {
   const concrete = await vrRoom.loadTexture("images/smooth.png")
@@ -156,7 +161,14 @@ vrRoom.onSqueezeEnd((time, controller) => {
 })
 
 vrRoom.onRender( (time, frame, renderer) => {
-  renderHands(time, frame, renderer)
+  const session = renderer.xr.getSession()
+  if (!session) {
+    return
+  }
+  if (session.visibilityState === 'visible-blurred') {
+    return
+  }
+  renderHands(session, time, frame)
   climbWithGripper(time, frame, renderer)
 })
 
@@ -180,12 +192,15 @@ function addBox(x, y, z, box_list, offset, options) {
   const { material = blackMaterial } = options
   const geometry = new THREE.BoxGeometry(1, 1, 1)
   const cube = new THREE.Mesh(geometry, material)
+  cube.scale.set(0.01, 0.01, 0.01)
+
   cube.castShadow = true;
   box_list.push({
     mesh: cube,
     position: [x, y, z],
     offset: offset
   })
+  return cube
 }
 
 function initHands() {
@@ -195,52 +210,54 @@ function initHands() {
   hands.left = []
   hands.right = []
   if (XRHand) {
-    for (let i = 0; i <= XRHand.LITTLE_PHALANX_TIP; i++) {
-      addBox(0, 0, 0, hands.left, i, { material: handMaterials.left })
-      addBox(0, 0, 0,  hands.right, i, { material: handMaterials.right })
+    for (let i = 0; i <= HAND.LITTLE_PHALANX_TIP; i++) {
+      vrRoom.player.add(addBox(0, 0, 0, hands.left, i, { material: handMaterials.left }))
+      vrRoom.player.add(addBox(0, 0, 0,  hands.right, i, { material: handMaterials.right }))
     }
   }
 }
 
-function updateHandBox(box, inputSource, frame, refSpace) {
-  const boxOffset = inputSource.hand[box.offset]
-  if (boxOffset == null) {
+function updateHand(inputSource, frame) {
+  const hand = inputSource.hand
+  if (!hand) {
     return
   }
-  const jointPose = frame.getJointPose(boxOffset, refSpace)
-  if (jointPose) {
-    const jointPosition = jointPose.transform.position
-    const jointOrientation = jointPose.transform.orientation
-    vrRoom.player.add(box.mesh)
-    box.mesh.position.set(jointPosition.x, jointPosition.y + 1.5, jointPosition.z)
-    const q = new THREE.Quaternion(jointOrientation.x, jointOrientation.y, jointOrientation.z, jointOrientation.w)
-    box.mesh.quaternion.copy(q)
-    box.mesh.scale.set(4 * jointPose.radius, jointPose.radius, 2 * jointPose.radius);
-  } else {
-    scene.remove(box.mesh)
+  // const pose = frame.getPose(inputSource.targetRaySpace, refSpace)
+  if (!frame.fillJointRadii(hand.values(), radii)) {
+    return
+  }
+  if (!frame.fillPoses(hand.values(), xrRefSpace, positions)) {
+    return
+  }
+
+  for (const box of hands[inputSource.handedness]) {
+    const positionsOffset = box.offset * 16
+    const entries = positions.slice(positionsOffset, positionsOffset + 16);
+    theMatrix.set(...Object.values(entries))
+    theMatrix.transpose()
+    box.mesh.position.setFromMatrixPosition(theMatrix)
+    box.mesh.position.y += 1.5
+    box.mesh.setRotationFromMatrix(theMatrix)
+    const jointRadius = radii[box.offset] ?? 1
+    box.mesh.scale.set(2 * jointRadius, jointRadius, 4 * jointRadius)
   }
 }
 
-function updateInputSources(session, frame, refSpace) {
-  session.inputSources.forEach( inputSource => {
-    if (!inputSource.hand) {
-      return  
-    }
-    for (const box of hands[inputSource.handedness]) {
-      updateHandBox(box, inputSource, frame, refSpace)
-    }
-  })
+function updateInputSources(session, frame) {
+  for (const inputSource of session.inputSources) {
+    updateHand(inputSource, frame)
+  }
 }
 
 function pinchCheck(hand) {
-  const indexTip = hand[XRHand.INDEX_PHALANX_TIP].mesh
-  const thumbTip = hand[XRHand.THUMB_PHALANX_TIP].mesh
+  const indexTip = hand[HAND.INDEX_PHALANX_TIP].mesh
+  const thumbTip = hand[HAND.THUMB_PHALANX_TIP].mesh
   const distance = indexTip.position.distanceTo(thumbTip.position)
   return distance < 0.01
 }
 
 function fingerCurl(hand, finger) {
-  const wrist = hand[XRHand.WRIST].mesh
+  const wrist = hand[HAND.WRIST].mesh
   const fingerMesh = hand[finger].mesh
   return wrist.quaternion.dot(fingerMesh.quaternion)
 }
@@ -256,7 +273,7 @@ const offsets = { left: null, right: null }
 
 function applyGrab(time, hand) {
   const theHand = hands[hand]
-  const wristMesh = theHand[XRHand.WRIST].mesh
+  const wristMesh = theHand[HAND.WRIST].mesh
   const controller = wristMesh
   const gripper = grippers[hand]
   gripper.position.copy(wristMesh.localToWorld(new THREE.Vector3()))
@@ -292,10 +309,10 @@ function applyGrab(time, hand) {
   offsets[hand] = theOffset
 }
 
-function renderHands(time, frame, renderer) {
+function renderHands(session, time, frame) {
   if (!frame) { return }
   if (!xrRefSpace) { return }
-  updateInputSources(renderer.xr.getSession(), frame, xrRefSpace)
+  updateInputSources(session, frame)
 
   applyGrab(time, "left")
   applyGrab(time, "right")
@@ -394,7 +411,8 @@ function climbWithGripper(time, frame, renderer) {
   vrRoom.player.userData.velocity = new THREE.Vector3()
 }
 
-vrRoom.onSessionStarted((session) => {
+vrRoom.onSessionStarted((event) => {
+  const session = event.target.getSession()
   initHands()
   session.requestReferenceSpace('local').then((refSpace) => {
     xrRefSpace = refSpace.getOffsetReferenceSpace(new XRRigidTransform({x: 0, y: 1.5, z: 0}))
