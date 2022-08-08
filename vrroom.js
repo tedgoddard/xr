@@ -514,7 +514,6 @@ function render(time, frame) {
   }
   const moved = moveListener(move)
   player.userData.velocity = moved.v
-//not quite going to work -- need to return moveListener both x and v
   player.position.add(moved.v)
 
   if (renderPointerCallback) {
@@ -720,6 +719,8 @@ export class VRRoom {
     animate()
     this.scene = scene
     this.camera = camera
+    this.renderer = renderer
+    this.controls = controls
     this.player = player
     this.halfPi = halfPi
     this.twoPi = twoPi
