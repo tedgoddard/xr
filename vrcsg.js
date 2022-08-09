@@ -1,6 +1,5 @@
 import { VRRoom, logFlash } from "./vrroom.js"
-import { BoxGeometry, Mesh, MeshStandardMaterial, MeshBasicMaterial, MeshPhongMaterial, Clock } from './js/three.module.js'
-import { DragControls } from './jsm/controls/DragControls.js'
+import { Euler, Quaternion, Vector3, BoxGeometry, Mesh, MeshStandardMaterial, MeshBasicMaterial, MeshPhongMaterial, Clock } from './js/three.module.js'
 import { TransformControls } from './jsm/controls/TransformControls.js'
 
 import "./js/jscad-modeling.min.js"
@@ -23,6 +22,9 @@ const { translate, rotate, scale } = Modeling.transforms
 const { intersect, subtract, union } = Modeling.booleans
 
 const greyMaterial = new MeshPhongMaterial( { color: 0x888888, flatShading: false } )
+const theQuaternion = new Quaternion()
+const theEuler = new Euler()
+const thePosition = new Vector3()
 
 const vrRoom = new VRRoom()
 const scene = vrRoom.scene
@@ -46,72 +48,23 @@ greenCube.position.z = 2
 greenCube.userData.csg = baseCube
 redCube.userData.csg = baseCube
 
-const draggables = [
-  greenCube, redCube
-]
-// const controls = new DragControls( draggables, vrRoom.camera, vrRoom.renderer.domElement );
-vrRoom.controls.enabled = false
-
-// controls.addEventListener( 'dragstart', function ( event ) {
-// 	event.object?.material?.emissive?.set( 0xaaaaaa )
-// })
-
-// controls.addEventListener( 'drag', function ( event ) {
-//   const csg = baseCube
-//   if (csg) {
-//     event.object.userData.csg = translate(event.object.position.toArray(), csg)
-//     updateBooleanExample()
-//   }
-// })
-
-// controls.addEventListener( 'hoveron', function ( event ) {
-//   vrRoom.controls.enabled = false
-// })
-
-// controls.addEventListener( 'hoveroff', function ( event ) {
-//   vrRoom.controls.enabled = true
-// })
-
-// controls.addEventListener( 'dragend', function ( event ) {
-// })
-
-
-
-
 const transformControl = new TransformControls(vrRoom.camera, vrRoom.renderer.domElement)
 transformControl.addEventListener('dragging-changed', event => {
   vrRoom.controls.enabled = !event.value
-  if (!event.value) {
-    console.log(redCube.position)
-    // const csg = baseCube
-    // if (csg) {
-    //   event.object.userData.csg = translate(event.object.position.toArray(), csg)
-    //   updateBooleanExample()
-    // }
-  }
 })
-
-transformControl.addEventListener('objectChange', () => {
-  const csg = baseCube
-  if (csg) {
-    const rotated = rotate(redCube.rotation.toArray(), csg)
-    redCube.userData.csg = translate(redCube.position.toArray(), rotated)
-    updateBooleanExample()
-  }
-})
-
 scene.add(transformControl)
-
 transformControl.attach(redCube)
-transformControl.setMode('rotate')
-
-
 
 document.addEventListener('keyup', event => {
-  console.log(event)
   if (event.code?.toLowerCase() == 'space') {
     totalCSG = subtract(totalCSG, redCube.userData.csg)
     console.log("subtracted")
+  }
+  if (event.code?.toLowerCase() == 'keyr') {
+    transformControl.setMode('rotate')
+  }
+  if (event.code?.toLowerCase() == 'keyt') {
+    transformControl.setMode('translate')
   }
 })
 
@@ -132,13 +85,17 @@ vrRoom.onSelect((time, controller) => {
   totalCSG = subtract(totalCSG, redCube.userData.csg)
 })
 
+let cubeHeld = false
+
 vrRoom.onSqueeze((time, controller) => {
-  controller.add(redCube)
+  controller.attach(redCube)
+  cubeHeld = true
 })
 
 vrRoom.onSqueezeEnd((time, controller) => {
+  cubeHeld = false
   const cubeWorld = redCube.localToWorld(new THREE.Vector3())
-  scene.add(redCube)
+  scene.attach(redCube)
   redCube.position.set(cubeWorld)
 })
 
@@ -162,6 +119,17 @@ async function init() {
   await loadFloor()
   await updateBooleanExample()
   vrRoom.onRender( async (delta, frame, renderer) => {
+    // if (!cubeHeld) {
+    //   return
+    // }
+    const csg = baseCube
+    redCube.getWorldPosition(thePosition)
+    redCube.getWorldQuaternion(theQuaternion)
+    theEuler.setFromQuaternion(theQuaternion)
+    const rotated = rotate(theEuler.toArray(), csg)
+    redCube.userData.csg = translate(thePosition.toArray(), rotated)
+    updateBooleanExample()
+
   })
 }
 
