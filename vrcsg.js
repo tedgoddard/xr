@@ -21,7 +21,7 @@ const {
 const { translate, rotate, scale } = Modeling.transforms
 const { intersect, subtract, union } = Modeling.booleans
 
-const greyMaterial = new MeshPhongMaterial( { color: 0x888888, flatShading: false } )
+const greyMaterial = new MeshPhongMaterial( { color: 0x888888, flatShading: true } )
 const theQuaternion = new Quaternion()
 const theEuler = new Euler()
 const thePosition = new Vector3()
@@ -33,7 +33,7 @@ clock.start()
 
 const baseCube = cube({ size: 1 })
 const floorCube = cuboid({ size: [10, 2, 10] })
-let totalCSG = floorCube
+let totalCSG = translate([0, -1, 0], floorCube)
 
 const boxGeometry = new BoxGeometry( 1, 1, 1 );
 const greenFrame = new MeshStandardMaterial({ color: 0x00ff00, wireframe: true })
