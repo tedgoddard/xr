@@ -32,7 +32,7 @@ const clock = new Clock()
 clock.start()
 
 const baseCube = cube({ size: 1 })
-const floorCube = cuboid({ size: [10, 0.5, 10] })
+const floorCube = cuboid({ size: [10, 2, 10] })
 let totalCSG = floorCube
 
 const boxGeometry = new BoxGeometry( 1, 1, 1 );
@@ -70,17 +70,6 @@ document.addEventListener('keyup', event => {
 
 let geomMesh = null
 
-async function loadFloor() {
-  const mesh = await vrRoom.loadTexturePanel("images/concrete.jpg")
-  mesh.rotation.x = -vrRoom.halfPi
-  mesh.position.y = 0.01
-  const mesh1 = mesh.clone()
-  mesh.position.z = -5
-  mesh1.position.z = 5
-  scene.add(mesh)
-  scene.add(mesh1)
-}
-
 vrRoom.onSelect((time, controller) => {
   totalCSG = subtract(totalCSG, redCube.userData.csg)
 })
@@ -116,7 +105,6 @@ function updateBooleanExample() {
 }
 
 async function init() {
-  await loadFloor()
   await updateBooleanExample()
   vrRoom.onRender( async (delta, frame, renderer) => {
     // if (!cubeHeld) {
