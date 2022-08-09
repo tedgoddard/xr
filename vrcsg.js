@@ -1,6 +1,7 @@
 import { VRRoom, logFlash } from "./vrroom.js"
 import { BoxGeometry, Mesh, MeshStandardMaterial, MeshBasicMaterial, MeshPhongMaterial, Clock } from './js/three.module.js'
 import { DragControls } from './jsm/controls/DragControls.js'
+import { TransformControls } from './jsm/controls/TransformControls.js'
 
 import "./js/jscad-modeling.min.js"
 import { csg2geom } from "./csg2geom.js"
@@ -29,6 +30,9 @@ const clock = new Clock()
 clock.start()
 
 const baseCube = cube({ size: 1 })
+const floorCube = cuboid({ size: [10, 0.5, 10] })
+let totalCSG = floorCube
+
 const boxGeometry = new BoxGeometry( 1, 1, 1 );
 const greenFrame = new MeshStandardMaterial({ color: 0x00ff00, wireframe: true })
 const redFrame = new MeshStandardMaterial({ color: 0xff0000, wireframe: true })
@@ -37,36 +41,78 @@ const redCube = new Mesh( boxGeometry, redFrame )
 scene.add(greenCube)
 scene.add(redCube)
 
+greenCube.position.x = 2
+greenCube.position.z = 2
 greenCube.userData.csg = baseCube
 redCube.userData.csg = baseCube
 
 const draggables = [
   greenCube, redCube
 ]
-const controls = new DragControls( draggables, vrRoom.camera, vrRoom.renderer.domElement );
+// const controls = new DragControls( draggables, vrRoom.camera, vrRoom.renderer.domElement );
 vrRoom.controls.enabled = false
 
-controls.addEventListener( 'dragstart', function ( event ) {
-	event.object?.material?.emissive?.set( 0xaaaaaa )
+// controls.addEventListener( 'dragstart', function ( event ) {
+// 	event.object?.material?.emissive?.set( 0xaaaaaa )
+// })
+
+// controls.addEventListener( 'drag', function ( event ) {
+//   const csg = baseCube
+//   if (csg) {
+//     event.object.userData.csg = translate(event.object.position.toArray(), csg)
+//     updateBooleanExample()
+//   }
+// })
+
+// controls.addEventListener( 'hoveron', function ( event ) {
+//   vrRoom.controls.enabled = false
+// })
+
+// controls.addEventListener( 'hoveroff', function ( event ) {
+//   vrRoom.controls.enabled = true
+// })
+
+// controls.addEventListener( 'dragend', function ( event ) {
+// })
+
+
+
+
+const transformControl = new TransformControls(vrRoom.camera, vrRoom.renderer.domElement)
+transformControl.addEventListener('dragging-changed', event => {
+  vrRoom.controls.enabled = !event.value
+  if (!event.value) {
+    console.log(redCube.position)
+    // const csg = baseCube
+    // if (csg) {
+    //   event.object.userData.csg = translate(event.object.position.toArray(), csg)
+    //   updateBooleanExample()
+    // }
+  }
 })
 
-controls.addEventListener( 'drag', function ( event ) {
+transformControl.addEventListener('objectChange', () => {
   const csg = baseCube
   if (csg) {
-    event.object.userData.csg = translate(event.object.position.toArray(), csg)
+    const rotated = rotate(redCube.rotation.toArray(), csg)
+    redCube.userData.csg = translate(redCube.position.toArray(), rotated)
     updateBooleanExample()
   }
 })
 
-controls.addEventListener( 'hoveron', function ( event ) {
-  vrRoom.controls.enabled = false
-})
+scene.add(transformControl)
 
-controls.addEventListener( 'hoveroff', function ( event ) {
-  vrRoom.controls.enabled = true
-})
+transformControl.attach(redCube)
+transformControl.setMode('rotate')
 
-controls.addEventListener( 'dragend', function ( event ) {
+
+
+document.addEventListener('keyup', event => {
+  console.log(event)
+  if (event.code?.toLowerCase() == 'space') {
+    totalCSG = subtract(totalCSG, redCube.userData.csg)
+    console.log("subtracted")
+  }
 })
 
 let geomMesh = null
@@ -82,9 +128,25 @@ async function loadFloor() {
   scene.add(mesh1)
 }
 
+vrRoom.onSelect((time, controller) => {
+  totalCSG = subtract(totalCSG, redCube.userData.csg)
+})
+
+vrRoom.onSqueeze((time, controller) => {
+  controller.add(redCube)
+})
+
+vrRoom.onSqueezeEnd((time, controller) => {
+  const cubeWorld = redCube.localToWorld(new THREE.Vector3())
+  scene.add(redCube)
+  redCube.position.set(cubeWorld)
+})
+
+
 function updateBooleanExample() {
   const now = clock.getElapsedTime()
-  const csgGeometry = csg2geom(subtract(greenCube.userData.csg, redCube.userData.csg))
+  const csgGeometry = csg2geom(subtract(totalCSG, redCube.userData.csg))
+  // const csgGeometry = csg2geom( redCube.userData.csg)
 
   if (!geomMesh) {
     geomMesh = new Mesh(csgGeometry, greyMaterial)
