@@ -1,5 +1,5 @@
 import { VRRoom, logFlash } from "./vrroom.js"
-import { Euler, Quaternion, Vector3, BoxGeometry, Mesh, MeshStandardMaterial, MeshBasicMaterial, MeshPhongMaterial, Clock } from './js/three.module.js'
+import { Euler, Quaternion, Vector3, Matrix4, BoxGeometry, Mesh, MeshStandardMaterial, MeshBasicMaterial, MeshPhongMaterial, Clock } from './js/three.module.js'
 import { TransformControls } from './jsm/controls/TransformControls.js'
 
 import "./js/jscad-modeling.min.js"
@@ -18,13 +18,14 @@ const {
   torus,
   polyhedron
 } = Modeling.primitives
-const { translate, rotate, scale } = Modeling.transforms
+const { translate, rotate, scale, transform } = Modeling.transforms
 const { intersect, subtract, union } = Modeling.booleans
 
 const greyMaterial = new MeshPhongMaterial( { color: 0x888888, flatShading: true } )
 const theQuaternion = new Quaternion()
 const theEuler = new Euler()
 const thePosition = new Vector3()
+const theMatrix = new Matrix4()
 
 const vrRoom = new VRRoom()
 const scene = vrRoom.scene
@@ -110,12 +111,7 @@ async function init() {
     // if (!cubeHeld) {
     //   return
     // }
-    const csg = baseCube
-    redCube.getWorldPosition(thePosition)
-    redCube.getWorldQuaternion(theQuaternion)
-    theEuler.setFromQuaternion(theQuaternion)
-    const rotated = rotate(theEuler.toArray(), csg)
-    redCube.userData.csg = translate(thePosition.toArray(), rotated)
+    redCube.userData.csg = transform(redCube.matrixWorld.toArray(), baseCube)
     updateBooleanExample()
 
   })
