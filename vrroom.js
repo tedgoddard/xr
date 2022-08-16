@@ -72,6 +72,7 @@ let renderPointerCallback = null
 let intersectList = []
 let controllerDecorator = null
 const selectListeners = []
+const selectEndListeners = []
 const squeezeListeners = []
 const squeezeEndListeners = []
 const renderListeners = []
@@ -162,10 +163,18 @@ function addController(scene, controller) {
     controller.remove(controller.children[0])
   })
   controller.addEventListener('squeezestart', event => {
-    controller.userData.squeezeEvent = event
+    const userData = controller.userData
+    userData.squeezeEvent = event
+    userData.squeezeEnded = false
+    userData.isSqueezing = true
   })
   controller.addEventListener('squeezeend', event => {
-    controller.userData.squeezeEndEvent = event
+    const userData = controller.userData
+    userData.squeezeEndEvent = event
+    if (userData.isSqueezing) {
+      userData.squeezeEnded = true
+    }
+    userData.isSqueezing = false
   })
   // scene.add(controller)
   player.add(controller)
@@ -624,6 +633,13 @@ function handleController(time, controller) {
     }
   }
   if ( controller.userData.selectEnded ) {
+    for (const listener of selectEndListeners) {
+      try {
+        listener(time, controller)
+      } catch (e) {
+        console.error(e)
+      }
+    }
     if (knife) {
       knife.userData.velocity = controller.userData.velocity
       knife.userData.eulerVelocity = controller.userData.eulerVelocity
@@ -1103,6 +1119,10 @@ console.log({hMin, hMax})
 
   onSelect(callback) {
     selectListeners.push(callback)
+  }
+
+  onSelectEnd(callback) {
+    selectEndListeners.push(callback)
   }
 
   onSqueeze(callback) {
