@@ -17,10 +17,16 @@ function csgOp(op, arg, retain) {
 }
 
 function union(arg, retain) {
+  if (!arg) {
+    return
+  }
   return csgOp(booleans.union, arg, retain)
 }
 
 function subtract(arg, retain) {
+  if (!arg) {
+    return
+  }
   return csgOp(booleans.subtract, arg, retain)
 }
 
