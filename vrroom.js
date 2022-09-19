@@ -18,7 +18,7 @@ import { HAND } from './hand.js'
 
 let clock = new THREE.Clock()
 
-const loader = new GLTFLoader()
+const gltfLoader = new GLTFLoader()
 const audioListener = new THREE.AudioListener()
 const audioLoader = new THREE.AudioLoader()
 const thump = new THREE.PositionalAudio(audioListener)
@@ -873,7 +873,8 @@ function intersects(objects) {
 }
 
 function boundingToBox(object) {
-  const bounding = object.geometry.boundingBox
+  const bounding = object.geometry?.boundingBox ?? (new THREE.Box3()).setFromObject(object)
+  object.userData.boundingBox = bounding
 
   const length = bounding.max.x - bounding.min.x
   const width = bounding.max.y - bounding.min.y
@@ -969,7 +970,7 @@ export class VRRoom {
 
   async loadModel(name) {
     return new Promise( (resolve, reject) => {
-      loader.load(name, gltf => {
+      gltfLoader.load(name, gltf => {
         const model = new THREE.Object3D()
         const gltfScene = gltf.scene
         model.add(gltfScene)
@@ -1035,9 +1036,7 @@ export class VRRoom {
     }
     options = { ...defaults, ...options }
     return options.font.generateShapes(text, options.size)
-
   }
-
 
   makeTextTile(text, options = {}) {
     const tileMaterial = options.material ?? ivory
@@ -1046,17 +1045,14 @@ export class VRRoom {
     const minHeight = (options.minHeight ?? 0) / 2
     const minWidth = (options.minWidth ?? 0) / 2
     const name = options.name ?? text
-console.log("MAKE TEXT TILE", text, text.length)
     const textLength = text.length
     const textShapes = this.makeTextShapes(text, { size: 0.3 })
     const textBounds = this.getShapesBounds(textShapes)
     const textSize = textBounds[1].x
-console.log("TEXT BOUNDS", textBounds)
     const w = Math.max(textSize + size, minWidth)
     const hPad = size / 3.0
     const hMin = Math.min(textBounds[1].y - hPad, -minHeight)
     const hMax = Math.max(textBounds[0].y + hPad, minHeight)
-console.log({hMin, hMax})
     const squareCoords = [[-size, hMax], [w, hMax], [w, hMin], [-size, hMin], [-size, hMax]]
     const squareVectors = squareCoords.map( u => new THREE.Vector2(...u) )
     const squareShape = new THREE.Shape(squareVectors)
