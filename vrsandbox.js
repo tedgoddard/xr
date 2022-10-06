@@ -289,7 +289,7 @@ vrRoom.onSqueeze((time, controller) => {
   }
 })
 
-vrRoom.onSqueezeEnd((time, controller) => {
+vrRoom.onSqueezeEnd(async (time, controller) => {
   if (objectHeld) {
     console.log("dropping", objectHeld)
     scene.attach(objectHeld)
@@ -306,32 +306,39 @@ vrRoom.onSqueezeEnd((time, controller) => {
 
   const event = squeezable?.userData?.event ?? squeezable?.userData?.parent?.userData?.event
   if (event) {
-    pointerUpHandlers[event]()
+    await pointerUpHandlers[event]()
     return
   }
 
 })
 
 const pointerUpHandlers = {
-  up: () => { 
+  up: async () => { 
     currentModelIndex += 1
-    updateModel()
+    await updateModel()
   },
-  down: () => { 
+  down: async () => { 
     currentModelIndex -= 1
-    updateModel()
+    await updateModel()
   }
 }
 
-vrRoom.onPointerUp( (position, intersects) => {
+vrRoom.onPointerUp( async (position, intersects) => {
   console.log("pointerUp", intersects)
   const object = intersects[0]?.object
   const event = object?.userData?.event ?? object?.userData?.parent?.userData?.event
   logFlash(`pointerUp ${event}`, 10)
   if (event) {
-    pointerUpHandlers[event]()
+    await pointerUpHandlers[event]()
   }
 })
+
+function normalizeModel(theModel) {
+  theBox.setFromObject(theModel)
+  const maxSize = max(theBox.getSize(theSize).toArray())
+  const shrink = 1 / maxSize
+  theModel.scale.multiplyScalar(shrink)
+}
 
 let modelLoading = false
 async function loadModel(index) {
@@ -350,10 +357,7 @@ async function loadModel(index) {
   // const url = `/glb/${modelPath}`
   const url = `https://tedgoddard.github.io/google_poly/glb/${modelPath}`
   const theModel = await vrRoom.loadModel(url)
-  theBox.setFromObject(theModel)
-  const maxSize = max(theBox.getSize(theSize).toArray())
-  const shrink = 1 / maxSize
-  theModel.scale.set(shrink, shrink, shrink)
+  normalizeModel(theModel)
   theBox.setFromObject(theModel)
   theModel.userData.boundingBox = theBox.clone()
   modelLoading = false
@@ -372,13 +376,17 @@ async function updateModel() {
     return
   }
   if (oldModel) {
+    currentModel.applyMatrix4(oldModel.matrixWorld)
+    normalizeModel(currentModel)
     transformControl.detach(oldModel)
     scene.remove(oldModel)
   }
-  // objectHeld = currentModel
   scene.add(currentModel)
-  currentModel.applyMatrix4(objectHeldTransform)
-  transformControl.attach(currentModel)
+  // currentModel.applyMatrix4(objectHeldTransform)
+  if (!vrRoom.session) {
+    transformControl.attach(currentModel)
+    objectHeld = currentModel
+  }
   currentModel.userData.isModel = true
   currentModel.userData.isDraggable = true
   // TODO PUT BACK SO WE CAN GRAB THE RABBIT
@@ -448,7 +456,7 @@ function addKeyboard() {
       const tile = vrRoom.makeTextTile(text, tileOptions)
       const event = `key-${text}`
       tile.userData.event = event
-      pointerUpHandlers[event] = () => {
+      pointerUpHandlers[event] = async () => {
         console.log("pointeruphandler", event, text)
         if (objectHeld) {
           console.log("skipping ", objectHeld)
@@ -464,7 +472,7 @@ function addKeyboard() {
         }
         redrawText()
         currentModelIndex = 0
-        setTimeout(findAndLoadModel)
+        await findAndLoadModel()
       }
       tile.position.set((x + rowCenter) / 2 - 4, (totalRows - y) / 1.5 - 0.5, -2)
       scene.add(tile)
@@ -515,12 +523,12 @@ async function init() {
       setTimeout(() => { material.color.r = highlightObject.userData.color.r }, 100)
     }
   })
-  vrRoom.addSelectListener(() => {
+  vrRoom.addSelectListener(async () => {
     const object = currentSelect?.object?.userData?.object
     const event = object?.userData?.event
     console.log("selectListener object event", event)
     if (event) {
-      pointerUpHandlers[event]()
+      await pointerUpHandlers[event]()
     }
   })
 
