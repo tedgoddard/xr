@@ -149,6 +149,14 @@ function doBool(message) {
   csgWorker.postMessage(message)
 }
 
+// strangely, does not work in VR
+function updateObjectHeldTransform() {
+  objectHeld.updateMatrixWorld()
+  const objectHeldMatrix = objectHeld.matrixWorld
+  objectHeldTransform.extractRotation(objectHeldMatrix)
+  objectHeldTransform.copyPosition(objectHeldMatrix)
+}
+
 const transformControl = new TransformControls(vrRoom.camera, vrRoom.renderer.domElement)
 transformControl.addEventListener('dragging-changed', event => {
   vrRoom.controls.enabled = !event.value
@@ -160,10 +168,7 @@ transformControl.addEventListener('dragging-changed', event => {
   console.log("transform is done")
   console.log(objectHeld.position)
   console.log("matched squeezable", matchSqueezable(objectHeld))
-  const objectHeldMatrix = objectHeld.matrixWorld
-  objectHeldTransform.extractRotation(objectHeldMatrix)
-  objectHeldTransform.copyPosition(objectHeldMatrix)
-  // objectHeldMatrix.multiply(theMatrix)
+  updateObjectHeldTransform()
 })
 transformControl.addEventListener('change', event => {
   const retain = false
@@ -250,9 +255,16 @@ vrRoom.onSelectEnd((time, controller) => {
   //TODO: Factor out
   if (objectHeld?.userData?.isModel) {
     const clone = objectHeld.clone()
+    const objectHeldWorld = objectHeld.localToWorld(new Vector3())
+    objectHeld.getWorldQuaternion(theQuaternion)
     clone.userData.isDraggable = true
+    clone.userData.isModel = true
     scene.add(clone)
-    clone.applyMatrix(objectHeldTransform)
+    clone.position.copy(objectHeldWorld)
+    clone.setRotationFromQuaternion(theQuaternion)
+    squeezables.push(clone)
+    theBox.setFromObject(clone)
+    clone.userData.boundingBox = theBox.clone()
     return
   }
   const retain = true
