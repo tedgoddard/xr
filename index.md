@@ -47,3 +47,6 @@ Adventures in Reality
 
 [Quantum Lánczos VR](lanczos.html): Prototype of a 2D/3D Schrödinger Equation Solution based on [Anders Sandvik: Computational Physics](http://physics.bu.edu/py502/). Another work in progress.
 
+### VR Sandbox
+
+[VR Sandbox](vrsandbox.html): Choose a 3D model by name and use it as a 3D "stamp" in the scene. Use primitive 3D solids to cut holes in or add to the ground.
