@@ -104,26 +104,26 @@ let csgTool = redCube
 const objectHeldTransform = new Matrix4()
 let refreshCSG = true
 
-const blackBox = new Mesh( markerGeometry, ebony )
+const blackBox = new Mesh(markerGeometry, ebony.clone())
 blackBox.position.set(2, 1, 2)
 scene.add(blackBox)
 blackBox.userData.event = "subtract"
 vrRoom.pointerUpObjects.push(blackBox)
 
-const whiteBox = new Mesh( markerGeometry, ivory )
+const whiteBox = new Mesh(markerGeometry, ivory.clone())
 whiteBox.position.set(2.3, 1, 2)
 scene.add(whiteBox)
 whiteBox.userData.event = "union"
 vrRoom.pointerUpObjects.push(whiteBox)
 
-const upArrow = new Mesh(tetrahedronGeometry, ivory)
+const upArrow = new Mesh(tetrahedronGeometry, ivory.clone())
 upArrow.position.set(0, 1, 2)
 upArrow.rotation.set(0.6, 0, 2.4)
 upArrow.userData.event = "up"
 scene.add(upArrow)
 vrRoom.pointerUpObjects.push(upArrow)
 
-const downArrow = new Mesh(tetrahedronGeometry, ivory)
+const downArrow = new Mesh(tetrahedronGeometry, ivory.clone())
 downArrow.position.set(0, 0.8, 2)
 downArrow.rotation.set(0.6, 0, -2.4)
 downArrow.userData.event = "down"
@@ -339,7 +339,7 @@ vrRoom.onPointerUp( async (position, intersects) => {
   console.log("pointerUp", intersects)
   const object = intersects[0]?.object
   const event = object?.userData?.event ?? object?.userData?.parent?.userData?.event
-  logFlash(`pointerUp ${event}`, 10)
+  // logFlash(`pointerUp ${event}`, 10)
   if (event) {
     await pointerUpHandlers[event]()
   }
@@ -372,7 +372,9 @@ async function loadModel(index) {
   normalizeModel(theModel)
   theBox.setFromObject(theModel)
   theModel.userData.boundingBox = theBox.clone()
+  console.log(modelInfo)
   modelLoading = false
+  theModel.name = modelInfo.Title
   return theModel
 }
 
@@ -392,6 +394,7 @@ async function updateModel() {
     normalizeModel(currentModel)
     transformControl.detach(oldModel)
     scene.remove(oldModel)
+    squeezables.splice(squeezables.findIndex(x => x == oldModel), 1)
   }
   scene.add(currentModel)
   // currentModel.applyMatrix4(objectHeldTransform)
@@ -412,8 +415,9 @@ async function findAndLoadModel() {
   const exactCandidates = []
   const closeCandidates = []
   const candidates = []
-  const exactMatcher = new RegExp(`^ *${currentText} *$`, "i")
-  const matcher = new RegExp(`.*${currentText}.*`, "i")
+  const text = currentText.text
+  const exactMatcher = new RegExp(`^ *${text} *$`, "i")
+  const matcher = new RegExp(`.*${text}.*`, "i")
   for (const info of polyInfo) {
     if (info.Title.match(exactMatcher)) {
       exactCandidates.push(info)
@@ -439,19 +443,29 @@ async function findAndLoadModel() {
   await updateModel()
 }
 
-let currentText = "rabbit"
-let currentTextMesh = null
+const currentText = {
+  text: "rabbit",
+  mesh: null,
+  position: [-4, 2, -2]
+}
+const debugText = {
+  text: "",
+  mesh: null,
+  position: [ 1, 1, 1]
+}
 
-function redrawText() {
-  if (currentTextMesh) {
-    scene.remove(currentTextMesh)
+function redrawText(textInfo) {
+  if (textInfo.drawnText == textInfo.text) {
+    return
   }
-  currentTextMesh = vrRoom.makeText(currentText)
-  // currentTextMesh.scale.set(0.2, 0.2, 0.2)
-  currentTextMesh.position.set(-4, 2, -2)
-  scene.add(currentTextMesh)
-  console.log({currentText})
-  currentModelIndex = 0
+  if (textInfo.mesh) {
+    scene.remove(textInfo.mesh)
+  }
+  textInfo.mesh = vrRoom.makeText(textInfo.text)
+  // textMesh.scale.set(0.2, 0.2, 0.2)
+  textInfo.mesh.position.set(...textInfo.position)
+  scene.add(textInfo.mesh)
+  textInfo.drawnText = textInfo.text
 }
 
 function addKeyboard() {
@@ -470,19 +484,16 @@ function addKeyboard() {
       tile.userData.event = event
       pointerUpHandlers[event] = async () => {
         console.log("pointeruphandler", event, text)
-        if (objectHeld) {
+        if (objectHeld && vrRoom.session) {
           console.log("skipping ", objectHeld)
           return
         }
         if (text == "<") {
-          currentText = currentText.slice(0, -1)
+          currentText.text = currentText.text.slice(0, -1)
         } else {
-          currentText += text
+          currentText.text += text
         }
-        if (currentTextMesh) {
-          scene.remove(currentTextMesh)
-        }
-        redrawText()
+        redrawText(currentText)
         currentModelIndex = 0
         await findAndLoadModel()
       }
@@ -500,9 +511,7 @@ function addKeyboard() {
 
 }
 
-
 async function init() {
-  updateModel()
   csgWorker.busy = false
   doBool({ op: "init", arg: totalCSG })
 
@@ -516,14 +525,15 @@ async function init() {
 
   await ensureHelvetiker()
   addKeyboard()
-  redrawText()
+  redrawText(currentText)
+  redrawText(debugText)
   initSqueezableBounds()
   await findAndLoadModel()
   
-  vrRoom.addPointerListener([...tiles], (hits) => {
-    currentSelect = hits[0][0] || hits[1][0]
+  vrRoom.addPointerListener([...vrRoom.pointerUpObjects], (hits) => {
+      currentSelect = hits[0][0] || hits[1][0]
     if (currentSelect) {
-      const object = currentSelect.object.userData.object
+      const object = currentSelect.object.userData.object ?? object
       const highlightObject = object.userData.highlightObject ?? object
       let material = highlightObject.material
       material = material[1] || material
