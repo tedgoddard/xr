@@ -511,6 +511,10 @@ function addKeyboard() {
 
 }
 
+vrRoom.onSessionStarted((event) => {
+  objectHeld = null
+})
+
 async function init() {
   csgWorker.busy = false
   doBool({ op: "init", arg: totalCSG })
