@@ -105,13 +105,13 @@ const objectHeldTransform = new Matrix4()
 let refreshCSG = true
 
 const blackBox = new Mesh(markerGeometry, ebony.clone())
-blackBox.position.set(2, 1, 2)
+blackBox.position.set(0.3, 1, 2)
 scene.add(blackBox)
 blackBox.userData.event = "subtract"
 vrRoom.pointerUpObjects.push(blackBox)
 
 const whiteBox = new Mesh(markerGeometry, ivory.clone())
-whiteBox.position.set(2.3, 1, 2)
+whiteBox.position.set(0.6, 1, 2)
 scene.add(whiteBox)
 whiteBox.userData.event = "union"
 vrRoom.pointerUpObjects.push(whiteBox)
@@ -332,14 +332,22 @@ const pointerUpHandlers = {
   down: async () => { 
     currentModelIndex -= 1
     await updateModel()
+  },
+  subtract: async () => {
+    boolOp = subtract
+    boolOpName = "subtract"
+  },
+  union: async () => {
+    boolOp = union
+    boolOpName = "union"
   }
 }
 
 vrRoom.onPointerUp( async (position, intersects) => {
-  console.log("pointerUp", intersects)
   const object = intersects[0]?.object
   const event = object?.userData?.event ?? object?.userData?.parent?.userData?.event
   // logFlash(`pointerUp ${event}`, 10)
+  console.log("pointerUp", intersects, event)
   if (event) {
     await pointerUpHandlers[event]()
   }
