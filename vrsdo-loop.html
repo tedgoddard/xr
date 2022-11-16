@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>VR SDO Viewer</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+		<link type="text/css" rel="stylesheet" href="main.css">
+	</head>
+	<body>
+
+		<div id="title">
+		 VR SDO Viewer
+		</div>
+		<script type="module" src="vrsdo-loop.js"></script>
+		<div id="container">
+			<video id="video1" loop muted autoplay playsinline style="display:none">
+				<source id="source1" src="videos/sdo.mp4"></source>
+			</video>
+			<video id="video2" loop muted autoplay playsinline style="display:none">
+				<source id="source2" src="videos/sdo.mp4"></source>
+			</video>
+		</div>
+
+		<script>
+			const videos = [
+				"sample-0094.mp4",
+				"sample-0131.mp4",
+				"sample-0171.mp4",
+				"sample-0193.mp4",
+				"sample-0211.mp4",
+				"sample-0304.mp4",
+				"sample-0335.mp4",
+				"sample-1600.mp4",
+				"sample-1700.mp4",
+			]
+			const source1 = document.getElementById("source1")
+		   const video1 = document.getElementById("video1")
+		   const source2 = document.getElementById("source2")
+		   const video2 = document.getElementById("video2")
+		   let i = 0
+		   setInterval(() => {
+				const src =  "../sdo/" + videos[i++ % videos.length]
+				source1.src = src
+				source2.src = src
+
+				const currentTime1 = video1.currentTime
+				video1.load()
+				video1.currentTime = currentTime1
+				video1.play()
+
+				const currentTime2 = video2.currentTime
+				video2.load()
+				video2.currentTime = currentTime2
+				video2.play()
+		 	}, 10000)
+		 </script>
+
+	</body>
+</html>
