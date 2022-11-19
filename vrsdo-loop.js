@@ -74,6 +74,8 @@ async function initButtons() {
 
 }
 
+const eventHandlers = []
+
 async function doEvent(target) {
   const event = target?.userData?.event
   const handler = eventHandlers[event]
@@ -83,12 +85,18 @@ async function doEvent(target) {
   }
 
   const channel = event
-  console.log("pointerUp", {channel, isImageMode})
   const src = `../sdo/sample-${channel}.mp4`
   source1.src = src
   source2.src = src
+
+  const currentTime1 = video1.currentTime
   video1.load()
+  video1.currentTime = currentTime1
+
+  const currentTime2 = video2.currentTime
   video2.load()
+  video2.currentTime = currentTime2
+
   console.log(source1)
 }
 
