@@ -46,7 +46,7 @@ function loadVideo() {
   const texture2 = new THREE.VideoTexture(video2)
   const material2 = new THREE.MeshBasicMaterial({ map: texture2 })
   screen2 = new THREE.Mesh(geometry, material2)
-  screen2.layers.set(2)
+  // screen2.layers.set(2)
   screen2.position.set(0, 1, -2)
   scene.add(screen2)
 }
@@ -128,6 +128,7 @@ async function doEvent(target) {
 
 vrRoom.onSessionStarted((session) => {
   screen1.layers.set(1)
+  screen2.layers.set(2)
 })
 
 vrRoom.onPointerUp( async (position, intersects) => {
