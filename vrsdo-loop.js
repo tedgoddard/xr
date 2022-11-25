@@ -1,4 +1,4 @@
-import { Vector3 } from "./js/three.module.js"
+import { Vector3, MeshLambertMaterial, Mesh, BoxGeometry } from "./js/three.module.js"
 import { VRRoom, ivory, logFlash } from "./vrroom.js"
 
 const vrRoom = new VRRoom({ disableBackground: true, disableGrid: true })
@@ -15,6 +15,10 @@ const buttons = []
 
 let stereoSeparation = 0
 let stereoIndex = 0
+
+const whiteFrame = new MeshLambertMaterial({ color: ivory, })
+whiteFrame.transparent = true
+whiteFrame.opacity = 0.3
 
 async function loadImageButton(image, options) {
   const mesh = await vrRoom.loadTexturePanel(image)
@@ -62,6 +66,15 @@ function adjustStereo() {
   console.log(`times: ${stereoIndex} ${stereoSeparation} ${video1.currentTime} ${video2.currentTime}`)
 }
 
+function highlightBox(object) {
+  const boxGeometry = new BoxGeometry(0.4, 0.4, 0.1)
+  const box = new Mesh(boxGeometry, whiteFrame)
+  box.position.copy(object.position)
+  scene.add(box)
+  box.visible = false
+  return box
+}
+
 async function initButtons() {
   let i = 0
   for (let x of [1.5, 2, 2.5]) {
@@ -71,6 +84,7 @@ async function initButtons() {
       const button = await loadImageButton(`images/sdo_${channel}.jpg`, 
         { ...buttonDefaults, position: new Vector3(x, y, 0) })
       button.userData.event = channel
+      button.userData.highlightObject = highlightBox(button)
       vrRoom.pointerUpObjects.push(button)
       buttons.push(button)
     }
@@ -79,6 +93,7 @@ async function initButtons() {
   const stereoButton = await loadImageButton(`images/eyes.png`,
     { ...buttonDefaults, position: new Vector3(3, 0.5, 0) })
   stereoButton.userData.event = "stereo"
+  stereoButton.userData.highlightObject = highlightBox(stereoButton)
   vrRoom.pointerUpObjects.push(stereoButton)
   buttons.push(stereoButton)
 }
@@ -143,15 +158,9 @@ function pointerListener(hits) {
   currentSelect = hits[0][0] || hits[1][0]
   if (currentSelect) {
     const object = currentSelect.object.userData.object
-    const highlightObject = object.userData.highlightObject ?? object
-    let material = highlightObject.material
-    material = material[1] || material
-    if (!highlightObject.userData.color) {
-      // object.userData.color = material.color
-      highlightObject.userData.color = { r: 0.53333, g: 0.53333, b: 0.53333}
-    }
-    material.color.r = 1
-    setTimeout(() => { material.color.r = highlightObject.userData.color.r }, 100)
+    const highlightObject = object.userData.highlightObject
+    highlightObject.visible = true
+    setTimeout(() => { highlightObject.visible = false }, 100)
   }
 }
 
