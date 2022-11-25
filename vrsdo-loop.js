@@ -13,6 +13,9 @@ let source1 = null
 let source2 = null
 const buttons = []
 
+let stereoSeparation = 0
+let stereoIndex = 0
+
 async function loadImageButton(image, options) {
   const mesh = await vrRoom.loadTexturePanel(image)
   // mesh.rotation.x = -vrRoom.halfPi
@@ -42,12 +45,6 @@ function loadVideo() {
   screen2.layers.set(2)
   screen2.position.set(0, 1, -2)
   scene.add(screen2)
-
-  document.addEventListener( 'click', function () {
-    video1.play()
-    video2.play()
-    video1.currentTime = video2.currentTime + 1
-  } )
 }
 
 const channels = [
@@ -56,6 +53,13 @@ const channels = [
 
 const buttonDefaults = {
   scale: new Vector3(0.04, 0.04, 1),
+}
+
+function adjustStereo() {
+  stereoIndex = (stereoIndex + 1) % 10
+  stereoSeparation = stereoIndex * 0.5
+  video1.currentTime = video2.currentTime + stereoSeparation
+  console.log(`times: ${stereoIndex} ${stereoSeparation} ${video1.currentTime} ${video2.currentTime}`)
 }
 
 async function initButtons() {
@@ -72,9 +76,16 @@ async function initButtons() {
     }
   }
 
+  const stereoButton = await loadImageButton(`images/eyes.png`,
+    { ...buttonDefaults, position: new Vector3(3, 0.5, 0) })
+  stereoButton.userData.event = "stereo"
+  vrRoom.pointerUpObjects.push(stereoButton)
+  buttons.push(stereoButton)
 }
 
-const eventHandlers = []
+const eventHandlers = {
+  stereo: adjustStereo,
+}
 
 async function doEvent(target) {
   const event = target?.userData?.event
@@ -114,6 +125,20 @@ vrRoom.addSelectListener(async () => {
   await doEvent(target)
 })
 
+document.addEventListener( 'click', function () {
+  video1.play().then(() => {
+    console.log("video1 playing")
+  })
+  video2.play().then(() => {
+    console.log("video2 playing")
+  })
+  video1.currentTime = video2.currentTime + stereoSeparation
+  setInterval(() => {
+    video1.play()
+    video2.play()
+  }, 1000)
+})
+
 function pointerListener(hits) {
   currentSelect = hits[0][0] || hits[1][0]
   if (currentSelect) {
@@ -133,6 +158,7 @@ function pointerListener(hits) {
 async function init() {
   await initButtons()
   loadVideo()
+  await doEvent({ userData: { event: "0131" } })
   vrRoom.addPointerListener([...buttons], pointerListener)
 }
 
