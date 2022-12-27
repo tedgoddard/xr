@@ -1,4 +1,4 @@
-import { VRRoom, logFlash } from "./vrroom.js"
+import { VRRoom, ensureHelvetiker } from "./vrroom.js"
 import * as THREE from './js/three.module.js';
 import * as BufferGeometryUtils from './jsm/utils/BufferGeometryUtils.js'
 
@@ -7,12 +7,8 @@ const vrRoom = new VRRoom({ disableBackground: true, disableGrid: true, camera: 
 const scene = vrRoom.scene
 
 const baseURL = "../point_e_models"
-
-async function sleep(millis) {
-  return new Promise( (resolve, reject) => {
-    window.setTimeout(resolve, millis)
-  })
-}
+let modelIndex = null
+let currentModel = 0
 
 async function loadFloor() {
   const ring1 = new THREE.RingGeometry(1.95, 2, 32)
@@ -56,21 +52,41 @@ function buildModel(model) {
   return new THREE.Points(geometry, material)
 }
 
-async function loadModels() {
-  const modelIndex = await (await fetch(`${baseURL}/index.json`)).json()
+let oldTextTile = null
+let oldModel = null
+async function updateModel() {
+  const i = currentModel % modelIndex.length
+  const name = modelIndex[i]
+  const modelResponse = await fetch(`${baseURL}/${name}`)
+  const modelData = await modelResponse.json()
 
-  for (const name of modelIndex) {
-    const modelResponse = await fetch(`${baseURL}/${name}`)
-    const modelData = await modelResponse.json()
-    const model = buildModel(modelData)
-    scene.add(model)
-    await sleep(5000)
-    scene.remove(model)
-  }
+  const textTile = vrRoom.makeTextTile(modelData.prompt)
+  setTimeout(() => {
+    const radius = textTile.children[0].geometry.boundingSphere.radius
+    textTile.position.set(-radius, 1, -2)
+  }, 10)
+  textTile.position.set(-1, 1, -2)
+  scene.remove(oldTextTile)
+  scene.add(textTile)
+  oldTextTile = textTile
+
+  const model = buildModel(modelData)
+  model.rotation.x = -vrRoom.halfPi
+  scene.remove(oldModel)
+  scene.add(model)
+  oldModel = model
+  currentModel += 1
+}
+
+async function loadModels() {
+  modelIndex = await (await fetch(`${baseURL}/index.json`)).json()
+  await updateModel()
+  setInterval(updateModel, 10000)
 }
 
 async function init() {
   await loadFloor()
+  await ensureHelvetiker()
   loadModels()
 }
 
