@@ -56,9 +56,8 @@ function buildModel(model) {
   return new THREE.Points(geometry, material)
 }
 
-async function init() {
+async function loadModels() {
   const modelIndex = await (await fetch(`${baseURL}/index.json`)).json()
-  await loadFloor()
 
   for (const name of modelIndex) {
     const modelResponse = await fetch(`${baseURL}/${name}`)
@@ -68,7 +67,11 @@ async function init() {
     await sleep(5000)
     scene.remove(model)
   }
+}
 
+async function init() {
+  await loadFloor()
+  loadModels()
 }
 
 init().then()
