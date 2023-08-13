@@ -78,8 +78,28 @@ function addStars(stars) {
   }
 }
 
+function csvFields(text) {
+  text = text.replace('\\', '\\u005c'))
+  text = text.replace(/"[^"]*"/g, chunk => chunk.replace(/,/, '\\u002c'))
+  const fields = text.split(/,/)
+  return fields
+    .map(field => `"${field.replace(/"/g, '')}"`)
+    .map(JSON.parse)
+}
+
+async function fetchCSV(name) {
+  const response = await fetch(name)
+  const blob = await response.blob()
+  const bytes = pako.inflate(await blob.arrayBuffer())
+  const text = new TextDecoder("utf-8").decode(bytes)
+  const lines = text.split("\n")
+  const data = lines.map(csvFields)
+  return data
+}
+
 async function init() {
 
+  console.log("Messier", await fetchCSV("MessierObjects.csv.gz"))
   const hyggzResponse = await fetch("hygdata_v3.csv.gz")
   await loadFloor()
 
