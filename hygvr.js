@@ -82,15 +82,10 @@ function csvFields(text) {
   text = text.replace('\\', '\\u005c')
   text = text.replace(/"[^"]*"/g, chunk => chunk.replace(/,/, '\\u002c'))
   const fields = text.split(/,/)
-  try {
-  const decoded = fields
+  return fields
     .map(field => field.replace(/"/g, ''))
     .map(field => `"${field}"`)
     .map(JSON.parse)
-  return decoded
-  }catch (e) {
-    console.log("malformed", fields)
-  }
 }
 
 async function fetchCSV(name) {
@@ -99,14 +94,14 @@ async function fetchCSV(name) {
   const bytes = pako.inflate(await blob.arrayBuffer())
   const text = new TextDecoder("utf-8").decode(bytes)
   const lines = text.split(/[\r\n]+/)
-  console.log(lines)
   const data = lines.map(csvFields)
   return data
 }
 
 async function init() {
   try {
-      console.log("Messier", await fetchCSV("MessierObjects.csv.gz"))
+    const messier = await fetchCSV("MessierObjects.csv.gz")
+    console.log("Messier", messier.map(row => [row[1], row[2]])
   } catch (e) {
     console.error(e)
   }
