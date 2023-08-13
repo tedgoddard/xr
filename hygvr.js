@@ -82,9 +82,14 @@ function csvFields(text) {
   text = text.replace('\\', '\\u005c')
   text = text.replace(/"[^"]*"/g, chunk => chunk.replace(/,/, '\\u002c'))
   const fields = text.split(/,/)
-  return fields
+  try {
+  const decoded = fields
     .map(field => `"${field.replace(/"/g, '')}"`)
     .map(JSON.parse)
+  return decoded
+  }catch (e) {
+    console.log("malformed", fields)
+  }
 }
 
 async function fetchCSV(name) {
