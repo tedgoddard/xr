@@ -98,8 +98,12 @@ async function fetchCSV(name) {
 }
 
 async function init() {
-
-  console.log("Messier", await fetchCSV("MessierObjects.csv.gz"))
+  try {
+      console.log("Messier", await fetchCSV("MessierObjects.csv.gz"))
+  } catch (e) {
+    console.error(e)
+  }
+  
   const hyggzResponse = await fetch("hygdata_v3.csv.gz")
   await loadFloor()
 
