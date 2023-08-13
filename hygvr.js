@@ -79,7 +79,7 @@ function addStars(stars) {
 }
 
 function csvFields(text) {
-  text = text.replace('\\', '\\u005c'))
+  text = text.replace('\\', '\\u005c')
   text = text.replace(/"[^"]*"/g, chunk => chunk.replace(/,/, '\\u002c'))
   const fields = text.split(/,/)
   return fields
