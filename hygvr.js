@@ -84,7 +84,8 @@ function csvFields(text) {
   const fields = text.split(/,/)
   try {
   const decoded = fields
-    .map(field => `"${field.replace(/"/g, '')}"`)
+    .map(field => field.replace(/"/g, ''))
+    .map(field => `"${field}"`)
     .map(JSON.parse)
   return decoded
   }catch (e) {
@@ -97,7 +98,8 @@ async function fetchCSV(name) {
   const blob = await response.blob()
   const bytes = pako.inflate(await blob.arrayBuffer())
   const text = new TextDecoder("utf-8").decode(bytes)
-  const lines = text.split("\n")
+  const lines = text.split(/[\r\n]+/)
+  console.log(lines)
   const data = lines.map(csvFields)
   return data
 }
