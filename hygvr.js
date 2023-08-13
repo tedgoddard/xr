@@ -100,6 +100,7 @@ async function fetchCSV(name) {
 
 async function init() {
   try {
+    // https://www.nexstarsite.com/Book/DSO.htm
     const messier = await fetchCSV("MessierObjects.csv.gz")
     console.log("Messier", messier.map(row => [row[1], row[2]]))
     const messierColumns = messier.shift()
