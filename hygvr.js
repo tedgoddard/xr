@@ -101,7 +101,7 @@ async function fetchCSV(name) {
 async function init() {
   try {
     const messier = await fetchCSV("MessierObjects.csv.gz")
-    console.log("Messier", messier.map(row => [row[1], row[2]])
+    console.log("Messier", messier.map(row => [row[1], row[2]]))
   } catch (e) {
     console.error(e)
   }
