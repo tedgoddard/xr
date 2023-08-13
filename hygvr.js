@@ -102,6 +102,14 @@ async function init() {
   try {
     const messier = await fetchCSV("MessierObjects.csv.gz")
     console.log("Messier", messier.map(row => [row[1], row[2]]))
+    const messierColumns = messier.shift()
+    console.log("COLUMNS", messierColumns)
+    const caldwell = await fetchCSV("CaldwellObjects.csv.gz")
+    const caldwellColumns = caldwell.shift()
+    console.log("Caldwell columns", caldwellColumns)
+    const herschel = await fetchCSV("Herschel400.csv.gz")
+    const herschelColumns = herschel.shift()
+    console.log("Herschel columns", herschelColumns)
   } catch (e) {
     console.error(e)
   }
