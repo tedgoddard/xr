@@ -6,6 +6,22 @@ const vrRoom = new VRRoom({ disableBackground: true, disableGrid: true, camera: 
 const scene = vrRoom.scene
 
 window.vrRoom = vrRoom
+
+const { twoPi, halfPi } = vrRoom
+const celestialSphere = new THREE.Object3D()
+scene.add(celestialSphere)
+const hygSphere = new THREE.Object3D()
+celestialSphere.add(hygSphere)
+hygSphere.rotateX(-halfPi)
+hygSphere.rotateZ(-halfPi)
+const radecSphere = new THREE.Object3D()
+celestialSphere.add(radecSphere)
+// radecSphere.rotateX(-Math.PI / 2)
+
+// const latitude = 51.0447
+const latitude = 90
+const latitudeRad = latitude * twoPi / 360
+
 const spectra = {
   O: 0xADB1E8,
   B: 0xC1CCDC,
@@ -68,7 +84,7 @@ function addMaterialStars({ size, material, stars }) {
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3))
   const pointsMaterial = new THREE.PointsMaterial({ size, sizeAttenuation: false, map: sprite, transparent: true, alphaTest: 0.5, ...material })
   const points = new THREE.Points(geometry, pointsMaterial)
-  scene.add( points )
+  hygSphere.add( points )
 }
 
 function addStars(stars) {
@@ -76,6 +92,35 @@ function addStars(stars) {
   for (const materialStars of partitionedStars) {
     addMaterialStars(materialStars)
   }
+}
+
+function dececimalRaDec(RAh, RAm, DECsgn, DECd, DECm) {
+  const ra = parseInt(RAh) + parseFloat(RAm) / 60
+  const dec = parseInt(`${DECsgn}1`) * (parseInt(DECd) + parseInt(DECm) / 60)
+  return { ra, dec }
+}
+
+function radianRaDec(RAh, RAm, DECsgn, DECd, DECm) {
+  let { ra, dec } = dececimalRaDec(RAh, RAm, DECsgn, DECd, DECm)
+  ra = ra * twoPi / 24
+  dec = dec * twoPi / 360
+  return { ra, dec }
+}
+
+function applyRaDec(position, distance, ra, dec) {
+  position.setFromSphericalCoords(distance, halfPi - dec, ra)
+}
+
+function messierDecoder(fields) {
+  const [
+    num, name, type, constellation,
+    RAh, RAm, Dsgn, Dd, Dm,
+    magnitude, info, distance
+  ] = fields
+  // const ra = (parseInt(RAh) + parseFloat(RAm) / 60) * twoPi / 24
+  // const dec = parseInt(`${Ds}1`) * (parseInt(Dd) + parseInt(Dm) / 60) * twoPi / 360
+  const { ra, dec } = radianRaDec(RAh, RAm, Dsgn, Dd, Dm)
+  return { m: `M${num.trim()}`, name, type, ra, dec, }
 }
 
 function csvFields(text) {
@@ -98,13 +143,48 @@ async function fetchCSV(name) {
   return data
 }
 
+function addCelestialGrid() {
+  const position = new THREE.Vector3()
+  const background = "rgba(0, 0, 0, 0)"
+  for (let rah = 0; rah < 8; rah += 1) {
+    for (let decd = -0; decd < 90; decd += 10) {
+      const { ra, dec } = radianRaDec(rah, 0, '+', decd, 0)
+      // position.setFromSphericalCoords(1.0, halfPi - dec, ra)
+      applyRaDec(position, 1.0, ra, dec)
+      const label = vrRoom.makeLabel(30, position, `${rah}h ${decd}\u00b0`, { background })
+      radecSphere.add(label)
+    }
+  }
+}
+
 async function init() {
+  // celestialSphere.rotateX(-latitudeRad)
+  setInterval(() => {
+    // celestialSphere.rotateX(0.001)
+    // hygSphere.rotateZ(0.001)
+  }, 100)
+  // addCelestialGrid()
   try {
     // https://www.nexstarsite.com/Book/DSO.htm
-    const messier = await fetchCSV("MessierObjects.csv.gz")
-    console.log("Messier", messier.map(row => [row[1], row[2]]))
-    const messierColumns = messier.shift()
+    const messierFields = await fetchCSV("MessierObjects.csv.gz")
+    const messierColumns = messierFields.shift()
     console.log("COLUMNS", messierColumns)
+    const messier = messierFields.map(messierDecoder)
+    console.log({messier})
+    const position = new THREE.Vector3()
+    const background = "rgba(0, 0, 0, 0)"
+    for (const object of messier) {
+      const { m, ra, dec } = object
+      // const distance = 20.0
+      const distance = 60.0
+      const scale = distance / 2
+      // position.setFromSphericalCoords(distance, halfPi - dec, ra)
+      applyRaDec(position, distance, ra, dec)
+      const label = vrRoom.makeLabel(30, position, m, { background })
+      label.scale.x *= scale
+      label.scale.y *= scale
+      radecSphere.add(label)
+    }
     const caldwell = await fetchCSV("CaldwellObjects.csv.gz")
     const caldwellColumns = caldwell.shift()
     console.log("Caldwell columns", caldwellColumns)
@@ -127,6 +207,10 @@ async function init() {
   console.log("COLUMNS", columns)
   hyg = hyg.filter( star => star[13] < 6.5 )
   const namedStars = hyg.filter( star => star[6] )
+  // const namedStars = hyg.filter( star => star[6] == 'Polaris' )
+  const namedRaDec = namedStars.map(row => ({ name: row[6], ra: row[7], dec: row[8],rar: row[23], decr: row[24] }))
+  console.log({ namedRaDec })
+  const background = "rgba(0, 0, 0, 0)"
   for (const star of namedStars) {
     const starPosition = new THREE.Vector3(...fixStarPosition([star[17], star[18], star[19]]))
     const distance = starPosition.length()
@@ -135,12 +219,11 @@ async function init() {
       scale = distance / 2
     }
     const position = starPosition.clone()
-    const background = "rgba(0, 0, 0, 0)"
     const label = vrRoom.makeLabel(30, position, star[6], { background })
     label.scale.x *= scale
     label.scale.y *= scale
     label.position.y -= 0.04 * scale
-    scene.add(label)
+    hygSphere.add(label)
   }
 
   addStars(hyg)
