@@ -1,5 +1,8 @@
 import { VRRoom, logFlash } from "./vrroom.js"
-import * as THREE from './js/three.module.js';
+import * as THREE from './js/three.module.js'
+import { ncpInfo } from "./ncp.js"
+
+window.ncpInfo = ncpInfo
 
 const cameraOptions = { fov: 50, near: 0.01, far: 1000 }
 const vrRoom = new VRRoom({ disableBackground: true, disableGrid: true, camera: cameraOptions })
@@ -283,7 +286,7 @@ async function init() {
     addRaDecLabels(messier)
 
     const caldwellFields = await fetchCSV("CaldwellObjects.csv.gz")
-    const caldwellColumns = caldwell.shift()
+    const caldwellColumns = caldwellFields.shift()
     console.log({caldwellColumns})
     const caldwell = caldwellFields.map(caldwellDecoder)
     console.log({caldwell})
@@ -291,7 +294,7 @@ async function init() {
     addRaDecLabels(caldwell)
 
     const herschelFields = await fetchCSV("Herschel400.csv.gz")
-    const herschelColumns = herschel.shift()
+    const herschelColumns = herschelFields.shift()
     console.log({herschelColumns})
     const herschel = herschelFields.map(herschelDecoder)
     console.log({herschel})
