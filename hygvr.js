@@ -23,8 +23,9 @@ celestialSphere.add(radecSphere)
 // radecSphere.rotateX(-Math.PI / 2)
 
 // const latitude = 51.0447
-const latitude = 90
-const latitudeRad = latitude * twoPi / 360
+let currentLatitude = 90
+const toRad = degrees => degrees * twoPi / 360
+const currentLatitudeRad = () => toRad(currentLatitude)
 
 const spectra = {
   O: 0xADB1E8,
@@ -269,14 +270,14 @@ function addCelestialGrid() {
 
 async function init() {
   // celestialSphere.rotateX(-latitudeRad)
-  setInterval(() => {
-    // celestialSphere.rotateX(0.001)
-    // hygSphere.rotateZ(0.001)
-  }, 100)
+  // setInterval(() => {
+  //   // celestialSphere.rotateX(0.001)
+  //   // hygSphere.rotateZ(0.001)
+  // }, 1000)
   // addCelestialGrid()
   try {
     // https://www.nexstarsite.com/Book/DSO.htm
-
+/*
     const messierFields = await fetchCSV("MessierObjects.csv.gz")
     const messierColumns = messierFields.shift()
     console.log({messierColumns})
@@ -300,7 +301,7 @@ async function init() {
     console.log({herschel})
     addRaDecObjects(herschel)
     addRaDecLabels(herschel)
-
+*/
   } catch (e) {
     console.error(e)
   }
@@ -334,6 +335,24 @@ async function init() {
   }
 
   addStars(hyg)
+
+  setInterval(() => {
+    let { angle, latitude, longitude } = ncpInfo()
+    console.log(angle)
+    currentLatitude = latitude
+    const celestialEuler = new THREE.Euler(-currentLatitudeRad(), toRad(angle), 0)
+    celestialSphere.setRotationFromEuler(celestialEuler)
+  }, 100)
+
+
+
+setTimeout(() => { 
+  const geometry = new THREE.BoxGeometry( .01, 4, .01 ); 
+  const material = new THREE.MeshBasicMaterial( {color: 0x00ff00} ); 
+  const cube = new THREE.Mesh( geometry, material ); 
+  scene.add( cube ); 
+  cube.rotateX(-currentLatitudeRad())
+}, 1000)
 
 }
 

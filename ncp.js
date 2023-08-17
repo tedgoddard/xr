@@ -33,8 +33,7 @@ function setupWithPosition(position)  {
   longitude = position.coords.longitude;
 }
 
-navigator.geolocation.getCurrentPosition(setupWithPosition);
-
+navigator.geolocation.watchPosition(setupWithPosition)
 
 //from http://aa.usno.navy.mil/faq/docs/JD_Formula.php
 //valid for 1801–2099
@@ -59,10 +58,10 @@ export function ncpInfo()  {
       (date.getSeconds() / 3600);
   const jd = julianDay(date.getFullYear(), date.getUTCMonth() + 1,
           date.getUTCDate(), h);
-  console.log("julian date " + jd) ;
+  // console.log("julian date " + jd) ;
   const d = sunDay(date.getFullYear(), date.getUTCMonth() + 1,
           date.getUTCDate(), h);
-  console.log("sunDay " + d) ;
+  // console.log("sunDay " + d) ;
   const gmst = 18.697374558 + 24.06570982441908 * d;
   const gmsthours = toHours(gmst);
   const lsthours = toHours(gmst + longitude / 15);
