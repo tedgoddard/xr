@@ -12,6 +12,7 @@ const textureLoader = new THREE.TextureLoader()
 window.vrRoom = vrRoom
 
 const { twoPi, halfPi } = vrRoom
+const quarterPi = halfPi / 2
 const celestialSphere = new THREE.Object3D()
 scene.add(celestialSphere)
 const hygSphere = new THREE.Object3D()
@@ -338,9 +339,8 @@ async function init() {
 
   setInterval(() => {
     let { angle, latitude, longitude } = ncpInfo()
-    console.log(angle)
     currentLatitude = latitude
-    const celestialEuler = new THREE.Euler(-currentLatitudeRad(), toRad(angle), 0)
+    const celestialEuler = new THREE.Euler(-currentLatitudeRad(), toRad(angle) - quarterPi, 0)
     celestialSphere.setRotationFromEuler(celestialEuler)
   }, 100)
 
