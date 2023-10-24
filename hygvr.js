@@ -281,7 +281,7 @@ async function init() {
     // https://www.nexstarsite.com/Book/DSO.htm
     const ncp = { label: `NCP`, name: `NCP`, type: `ncp`, ra: 0, dec: 0, }
     addRaDecObjects([ncp])
-/*
+
     const messierFields = await fetchCSV("MessierObjects.csv.gz")
     const messierColumns = messierFields.shift()
     console.log({messierColumns})
@@ -289,7 +289,7 @@ async function init() {
     console.log({messier})
     addRaDecObjects(messier)
     addRaDecLabels(messier)
-
+/*
     const caldwellFields = await fetchCSV("CaldwellObjects.csv.gz")
     const caldwellColumns = caldwellFields.shift()
     console.log({caldwellColumns})
