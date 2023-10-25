@@ -281,6 +281,7 @@ async function init() {
     // https://www.nexstarsite.com/Book/DSO.htm
     const ncp = { label: `NCP`, name: `NCP`, type: `ncp`, ra: 0, dec: 0, }
     addRaDecObjects([ncp])
+    addRaDecLabels([ncp])
 
     const messierFields = await fetchCSV("MessierObjects.csv.gz")
     const messierColumns = messierFields.shift()
