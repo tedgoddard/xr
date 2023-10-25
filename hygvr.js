@@ -279,7 +279,7 @@ async function init() {
   // addCelestialGrid()
   try {
     // https://www.nexstarsite.com/Book/DSO.htm
-    const ncp = { label: `NCP`, name: `NCP`, type: `ncp`, ra: 0, dec: 0, }
+    const ncp = { label: `NCP`, name: `NCP`, type: `ncp`, ra: 0, dec: 90.0, }
     addRaDecObjects([ncp])
     addRaDecLabels([ncp])
 
